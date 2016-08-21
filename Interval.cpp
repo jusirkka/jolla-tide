@@ -41,8 +41,8 @@ Interval (Tide::operator+) (const Interval& a, const Interval& b) {
     return Interval(a.seconds + b.seconds);
 }
 
-Interval (Tide::operator*) (int a, const Interval& b) {
-    return Interval(a * b.seconds);
+Interval (Tide::operator*) (double a, const Interval& b) {
+    return Interval(interval_rep_t(a * b.seconds));
 }
 
 double (Tide::operator/) (const Interval& a, const Interval& b) {

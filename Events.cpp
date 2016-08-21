@@ -65,6 +65,8 @@ void Tide::Events::rewind() {
     endInsertRows();
     m_Today = (m_Today * (m_Events.size() - 10) + 10) / m_Events.size();
     emit todayChanged(m_Today);
+    m_Delta = 10.0 / m_Events.size();
+    emit deltaChanged(m_Delta);
 }
 
 
@@ -77,6 +79,7 @@ void Tide::Events::init(const QString& key) {
     computeEvents(10);
     qDebug() << "init" << m_Events.size();
     m_Today = 0.5;
+    m_Delta = 0.0;
     endResetModel();
 }
 

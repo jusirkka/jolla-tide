@@ -26,8 +26,13 @@ Item {
 
         Component.onCompleted: {
             contentY = (eventsModel.today - 0.5 * visibleArea.heightRatio) * contentHeight
+            eventsModel.deltaChanged.connect(adjustTop)
         }
 
+        function adjustTop(v) {
+            console.log("adjust " + v + " * " + contentHeight)
+            contentY = v * contentHeight
+        }
 
         onAtYBeginningChanged: if (atYBeginning) {
                                    console.log("rewind")

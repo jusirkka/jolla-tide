@@ -38,7 +38,7 @@ public:
 
     friend Interval operator- (const Timestamp& a, const Timestamp& b);
     friend Interval operator+ (const Interval& a, const Interval& b);
-    friend Interval operator* (int a, const Interval& b);
+    friend Interval operator* (double a, const Interval& b);
 
     interval_rep_t seconds;
 
@@ -59,7 +59,7 @@ private:
 
 Interval operator- (const Timestamp& a, const Timestamp& b);
 Interval operator+ (const Interval& a, const Interval& b);
-Interval operator* (int a, const Interval& b);
+Interval operator* (double a, const Interval& b);
 double operator/ (const Interval& a, const Interval& b);
 
 bool operator<= (const Interval& a, const Interval& b);

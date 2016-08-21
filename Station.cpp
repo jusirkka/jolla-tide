@@ -26,7 +26,7 @@
 
 #include "Station.h"
 #include <cmath>
-
+#include <QDebug>
 
 using namespace Tide;
 
@@ -63,10 +63,6 @@ void Station::predictTideEvents(const Timestamp& startTime,
     if (startTime >= endTime) {
         return;
     }
-
-    // FIXME: testing - remove
-    addToOrganizer(organizer, (startTime.posix() % 2) ? TideEvent::min : TideEvent::max, startTime + Interval::fromSeconds(5));
-    return;
 
     Timestamp ev_Time;
     TideEvent::Type ev_Type;

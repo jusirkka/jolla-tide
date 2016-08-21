@@ -14,6 +14,7 @@ class Events: public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(double today READ today NOTIFY todayChanged)
+    Q_PROPERTY(double delta READ delta NOTIFY deltaChanged)
 
 public:
 
@@ -45,10 +46,12 @@ public:
     ~Events();
 
     double today() {return m_Today;}
+    double delta() {return m_Delta;}
 
 signals:
 
     void todayChanged(double v);
+    void deltaChanged(double v);
 
 private:
 
@@ -60,6 +63,7 @@ private:
     QList<TideEvent> m_Events;
     StationProvider* m_Parent;
     double m_Today;
+    double m_Delta;
 };
 
 }
