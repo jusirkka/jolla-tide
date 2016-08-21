@@ -10,9 +10,7 @@ Tide::Events::~Events() {}
 Tide::Events::Events(StationProvider* parent):
     QAbstractListModel(parent),
     m_Parent(parent)
-{
-    // TODO: check database
-}
+{}
 
 
 

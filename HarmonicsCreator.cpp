@@ -7,6 +7,7 @@
 #include <QTextStream>
 #include <fftw3.h>
 #include <QString>
+#include <QDebug>
 
 HarmonicsCreator::HarmonicsCreator(const TData& levels, unsigned t0): m_I(Complex(0, 1)) {
     double c = 1.0 / 360 / 3600;
@@ -60,30 +61,14 @@ HarmonicsCreator::HarmonicsCreator(const TData& levels, unsigned t0): m_I(Comple
     QList<unsigned> kvalues;
     foreach (Mode m, m_ModeFrequency.keys()) {
         double kvalue = m_ModeFrequency[m] * count * t0;
-        if (m != Z0 && kvalue < m_K0 || kvalues.contains(unsigned(kvalue))) {
-            std::cerr << "skipping " << m_ModeNames[m].toAscii().constData() << ", k_c = " << kvalue << std::endl;
+        if ((m != Z0 && kvalue < m_K0) || kvalues.contains(unsigned(kvalue))) {
+            qDebug() << "skipping " << m_ModeNames[m] << ", k_c = " << kvalue;
             continue;
         }
-        std::cerr << "adding " << m << " ("<< m_ModeNames[m].toAscii().constData() << ") , k_c = " << kvalue << std::endl;
+        qDebug() << "adding " << m << " ("<< m_ModeNames[m] << ") , k_c = " << kvalue;
         kvalues.append(unsigned(kvalue));
         m_Modes.append(m);
     }
-
-    double *dp = (double *)malloc(sizeof(double) * (count + 2));
-    fftw_complex *cp = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * count);
-
-    fftw_plan plan = fftw_plan_dft_r2c_1d(2^16, dp, cp, FFTW_MEASURE);
-
-    for(int i = 0; i < count; i++) {
-        dp[i] = levels[i];
-    }
-
-    fftw_execute(plan);
-    for (int k = 0; k < count / 2; k++) {
-        m_KData << Complex(cp[k][0], cp[k][1]);
-    }
-
-    fftw_destroy_plan(plan);
 
     foreach(Mode mode, m_Modes) {
         if (mode == Z0) {
@@ -99,9 +84,7 @@ HarmonicsCreator::HarmonicsCreator(const TData& levels, unsigned t0): m_I(Comple
             }
             m_Coefficients[mode] = 2 * sum / levels.count();
         }
-        std::cerr << m_ModeNames[mode].toAscii().constData() << " = "
-                  << m_Coefficients[mode].mod() << ", " << m_Coefficients[mode].arg()
-                  << std::endl;
+        qDebug() << m_ModeNames[mode] << " = " << m_Coefficients[mode].mod() << ", " << m_Coefficients[mode].arg();
     }
 
 }
@@ -110,7 +93,7 @@ HarmonicsCreator::HarmonicsCreator(const TData& levels, unsigned t0): m_I(Comple
 const HarmonicsCreator::Amplitudes& HarmonicsCreator::levels(unsigned t0, unsigned t_delta, unsigned n0) {
     m_TData.clear();
 
-    for (int n = 0; n < n0; n++) {
+    for (unsigned n = 0; n < n0; n++) {
         double sum = 0;
         double t = t0 + n * t_delta;
         for (CoefficientsIterator it = m_Coefficients.constBegin(); it != m_Coefficients.constEnd(); ++it) {

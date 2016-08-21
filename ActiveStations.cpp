@@ -1,5 +1,6 @@
 #include "ActiveStations.h"
 #include "StationProvider.h"
+#include "Database.h"
 #include <QDebug>
 #include <QDateTime>
 
@@ -10,7 +11,11 @@ Tide::ActiveStations::ActiveStations(StationProvider* parent):
     QAbstractListModel(parent),
     m_Parent(parent)
 {
-    // TODO: check database
+    QStringList actives = Database::ActiveStations();
+    foreach (QString saved, actives) {
+        append(saved);
+    }
+
 }
 
 
@@ -64,6 +69,7 @@ QHash<int, QByteArray> Tide::ActiveStations::roleNames() const {
 
 
 void Tide::ActiveStations::append(const QString& station) {
+    Database::Activate(station);
     int row = m_Stations.size();
     beginInsertRows(QModelIndex(), row, row);
     m_Stations.append(station);
@@ -116,6 +122,7 @@ bool Tide::ActiveStations::removeRows(int row, int count, const QModelIndex& par
 }
 
 void Tide::ActiveStations::remove(int row) {
+    Database::Deactivate(m_Stations[row]);
     removeRows(row, 1);
 }
 

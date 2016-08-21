@@ -1,18 +1,25 @@
 #include "Dummy.h"
 #include "Year.h"
 #include "RunningSet.h"
+#include "Database.h"
 
 using namespace Tide;
 
 DummyStations::DummyStations():
     QObject(),
     StationFactory(),
-    m_Info("ff1", "<factory name='Dummy/>"),
+    m_Info("dummy", "<factory name=\"Dummy\"/>"),
     m_Status(Status::NOOP, "<status/>")
 {
+    QStringList keys;
+    keys << "10192830" << "09432037" << "1847928";
+    QStringList infos;
+    infos << "<station name='Mokio' type='Running'/>" << "<station name='Porto' type='Running'/>" << "<station name='Tokio' type='Running'/>";
 
-    m_Available["10192830"] = StationInfo("10192830", "<station name='Mokio' type='Running'/>");
-    m_Available["09432037"] = StationInfo("09432037", "<station name='Tokio' type='Running'/>");
+    for (int i = 0; i < keys.size(); ++i) {
+        m_Available[keys[i]] = StationInfo(keys[i], infos[i]);
+        Database::AddStation("dummy", keys[i], infos[i]);
+    }
 
     Amplitude datum = Amplitude::fromDottedMeters(1, 0);
     Timestamp epoch = Timestamp::fromUTCYear(Year::fromAD(2016));

@@ -5,11 +5,13 @@ CONFIG += c++11
 
 SOURCES += main.cpp StationProvider.cpp Station.cpp Angle.cpp Amplitude.cpp Coordinates.cpp Interval.cpp  \
     TideEvent.cpp Timestamp.cpp Speed.cpp Year.cpp Dummy.cpp \
-    RunningSet.cpp ActiveStations.cpp Events.cpp
+    RunningSet.cpp ActiveStations.cpp Events.cpp Complex.cpp HarmonicsCreator.cpp \
+    Database.cpp
 
-HEADERS += Amplitude.h ConstituentSet.h Speed.h StationProvider.h Year.h Angle.h Coordinates.h Station.h TideEvent.h \
-    Interval.h StationFactory.h Timestamp.h Dummy.h \
-    RunningSet.h ActiveStations.h Events.h
+HEADERS += Amplitude.h ConstituentSet.h Speed.h StationProvider.h Year.h Angle.h Coordinates.h Station.h \
+    TideEvent.h Interval.h StationFactory.h Timestamp.h Dummy.h \
+    RunningSet.h ActiveStations.h Events.h HarmonicsCreator.h Complex.h \
+    Database.h
 
 DEFINES += QT_STATICPLUGIN
 

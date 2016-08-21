@@ -39,7 +39,6 @@ private:
     QMap<Mode, double> m_ModeFrequency;
     ModeList m_Modes;
     Amplitudes m_TData;
-    KData m_KData;
     unsigned m_K0, m_KMax;
     Coefficients m_Coefficients;
     Complex m_I;
