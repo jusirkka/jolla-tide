@@ -1,2 +1,2 @@
-# plasma-tide
-KDE4/Plasma-Applet adaptation of xtide
+# jolla-tide
+SailfishOS adaptation of xtide and more
