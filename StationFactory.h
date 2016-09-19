@@ -13,9 +13,9 @@ class Status {
 
 public:
 
-    enum Code {NOOP, ERROR, SUCCESS};
+    enum Code {NOOP, ERROR, SUCCESS, PENDING};
 
-    Status(Code c, const QString& d): code(c), xmlDetail(d) {}
+    Status(Code c = NOOP, const QString& d = QString()): code(c), xmlDetail(d) {}
 
 
     Code code;
@@ -38,6 +38,21 @@ public:
 // alias
 typedef StationInfo StationFactoryInfo;
 
+
+class ClientProxy
+{
+
+public:
+
+    ClientProxy() {}
+
+    virtual void whenFinished(const Status&) = 0;
+    virtual ClientProxy* clone() = 0;
+
+    virtual ~ClientProxy() {}
+};
+
+
 class StationFactory {
 
 public:
@@ -47,8 +62,9 @@ public:
     virtual const StationFactoryInfo& info() = 0;
     virtual const QHash<QString, StationInfo>& available() = 0;
     virtual const Station& instance(const QString& key) = 0;
-    virtual const Status& update(const QString& key) = 0;
-    virtual const Status& updateAvailable() = 0;
+    virtual void update(const QString& key, ClientProxy* client) = 0;
+    virtual bool updateNeeded(const QString& key) = 0;
+    virtual void updateAvailable(ClientProxy* client) = 0;
 
     virtual ~StationFactory() {}
 

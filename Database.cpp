@@ -59,6 +59,7 @@ QSqlQuery& Database::prepare(const QString& sql) {
 }
 
 void Database::close() {
+    m_DB.commit();
     m_DB.close();
 }
 
@@ -89,14 +90,17 @@ QHash<QString, QString> Database::AllStations(const QString& provider) {
     QSqlQuery r;
     if (provider.isEmpty()) {
         r = instance()->exec("select fuid, suid, xmlinfo from stations");
+        while (r.next()) {
+            QString key = QString("%1%2%3").arg(r.value(0).toString()).arg(QChar(30)).arg(r.value(1).toString());
+            s[key] = r.value(2).toString();
+        }
     } else {
-        r = instance()->prepare("select fuid, suid, xmlinfo from stations where fuid=?");
+        r = instance()->prepare("select suid, xmlinfo from stations where fuid=?");
         r.bindValue(0, provider);
         exec_and_trace(r);
-    }
-    while (r.next()) {
-        QString key = QString("%1%2%3").arg(r.value(0).toString()).arg(QChar(30)).arg(r.value(1).toString());
-        s[key] = r.value(2).toString();
+        while (r.next()) {
+            s[r.value(0).toString()] = r.value(1).toString();
+        }
     }
     instance()->close();
     return s;
@@ -122,6 +126,7 @@ void Database::Activate(const QString& station) {
     r = instance()->prepare("insert into actives (station_id) values (?)");
     r.bindValue(0, station_id);
     exec_and_trace(r);
+    instance()->close();
 }
 
 void Database::Deactivate(const QString& station) {
@@ -138,10 +143,11 @@ void Database::Deactivate(const QString& station) {
     r = instance()->prepare("delete from actives where station_id=?");
     r.bindValue(0, station_id);
     exec_and_trace(r);
+    instance()->close();
 }
 
 
-void Database::AddStation(const QString& provider, const QString& station, const QString& xmlinfo) {
+void Database::UpdateStationInfo(const QString& provider, const QString& station, const QString& xmlinfo) {
     QSqlQuery r;
 
     r = instance()->prepare("select id from stations where fuid=? and suid=?");
@@ -149,32 +155,61 @@ void Database::AddStation(const QString& provider, const QString& station, const
     r.bindValue(1, station);
     exec_and_trace(r);
     if (r.next()) {
-        return;
+        int station_id = r.value(0).toInt();
+        r = instance()->prepare("update stations set xmlinfo=? where id=?");
+        r.bindValue(0, xmlinfo);
+        r.bindValue(1, station_id);
+    } else {
+        r = instance()->prepare("insert into stations (fuid, suid, xmlinfo) values (?, ?, ?)");
+        r.bindValue(0, provider);
+        r.bindValue(1, station);
+        r.bindValue(2, xmlinfo);
     }
-
-    r = instance()->prepare("insert into stations (fuid, suid, xmlinfo) values (?, ?, ?)");
-    r.bindValue(0, provider);
-    r.bindValue(1, station);
-    r.bindValue(2, xmlinfo);
     exec_and_trace(r);
 }
 
-//query.exec("create table if not exists epochs ("
-//           "id integer primary key, "
-//           "station_id integer not null, "
-//           "start integer not null, "
-//           "timedelta integer not null)");
-//query.exec("create table if not exists readings ("
-//           "id integer primary key, "
-//           "epoch_id integer not null, "
-//           "reading real not null)");
-//query.exec("create table if not exists constituents ("
-//           "id integer primary key, "
-//           "epoch_id integer not null, "
-//           "mode_id integer not null, "
-//           "rea real not null, "
-//           "ima real not null)");
-//query.exec("create table if not exists modes ("
-//           "id integer primary key, "
-//           "name text not null, "
-//           "frequency real not null)");
+
+void Database::Control(const QString& sql, const QVariantList& vars) {
+    QSqlQuery r;
+    if (vars.isEmpty()) {
+        r = instance()->exec(sql);
+    } else {
+        r = instance()->prepare(sql);
+        for (int i = 0; i < vars.size(); ++i) {
+            r.bindValue(i, vars[i]);
+        }
+        exec_and_trace(r);
+    }
+}
+
+QList<QVector<QVariant>> Database::Query(const QString& sql, const QVariantList& vars) {
+    QSqlQuery r;
+    if (vars.isEmpty()) {
+        r = instance()->exec(sql);
+    } else {
+        r = instance()->prepare(sql);
+        for (int i = 0; i < vars.size(); ++i) {
+            r.bindValue(i, vars[i]);
+        }
+        exec_and_trace(r);
+    }
+    QList<QVector<QVariant>> s;
+    while (r.next()) {
+        QVector<QVariant> row(r.record().count());
+        for (int i = 0; i < r.record().count(); ++i) {
+            // qDebug() << r.value(i);
+            row[i] = r.value(i);
+        }
+        s << row;
+    }
+    return s;
+}
+
+bool Database::Transaction() {
+    if (!instance()->m_DB.isOpen()) instance()->m_DB.open();
+    return instance()->m_DB.transaction();
+}
+
+bool Database::Commit() {
+    return instance()->m_DB.commit();
+}

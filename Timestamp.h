@@ -63,10 +63,14 @@ public:
     static Timestamp fromUTCYear(Year year);
     static Timestamp fromJulianDate(double julianDate);
 
+    static Timestamp now();
 
     Timestamp(const Timestamp& a): m_PosixTime(a.m_PosixTime) {}
     Timestamp& operator=(const Timestamp& a) {m_PosixTime = a.m_PosixTime; return *this;}
     Timestamp(): m_PosixTime(0) {}
+
+
+    bool isnil(){return m_PosixTime == 0;}
 
     // Convert to Julian date
     double jd() const;
@@ -88,6 +92,7 @@ bool operator<= (const Timestamp& a, const Timestamp& b);
 bool operator< (const Timestamp& a, const Timestamp& b);
 bool operator>= (const Timestamp& a, const Timestamp& b);
 bool operator> (const Timestamp& a, const Timestamp& b);
+bool operator!= (const Timestamp& a, const Timestamp& b);
 
 Timestamp operator+ (const Timestamp& a, const Interval& b);
 

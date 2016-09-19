@@ -22,7 +22,30 @@
 #ifndef SPEED_H
 #define SPEED_H
 
+#include <exception>
+#include <QString>
+
 namespace Tide {
+
+class Negative: public std::exception
+{
+public:
+
+    Negative(const QString& msg): m_Message(msg) {}
+
+    const char* what() const throw() {
+        return m_Message.toLatin1().constData();
+    }
+
+
+    ~Negative() throw() {}
+
+private:
+
+    QString m_Message;
+};
+
+
 
 class Speed {
 public:
@@ -36,6 +59,10 @@ public:
     Speed& operator=(const Speed& a) {radiansPerSecond = a.radiansPerSecond; return *this;}
     Speed(): radiansPerSecond(0) {}
 
+    double dph() const;
+    Speed& operator+= (const Speed& a);
+
+    friend Speed operator* (double b, const Speed& a);
 
 private:
 
@@ -44,6 +71,16 @@ private:
 
 
 };
+
+bool operator== (const Speed& a, const Speed& b);
+bool operator!= (const Speed& a, const Speed& b);
+bool operator< (const Speed& a, const Speed& b);
+bool operator> (const Speed& a, const Speed& b);
+bool operator<= (const Speed& a, const Speed& b);
+bool operator>= (const Speed& a, const Speed& b);
+
+Speed operator* (double a, const Speed& b);
+
 
 }
 #endif

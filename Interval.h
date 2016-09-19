@@ -39,6 +39,7 @@ public:
     friend Interval operator- (const Timestamp& a, const Timestamp& b);
     friend Interval operator+ (const Interval& a, const Interval& b);
     friend Interval operator* (double a, const Interval& b);
+    friend Interval operator* (const Interval& b, double a);
 
     interval_rep_t seconds;
 
@@ -50,6 +51,7 @@ public:
     Interval& operator=(const Interval& a) {seconds = a.seconds; return *this;}
     Interval(): seconds(0) {}
 
+    bool isnil(){return seconds == 0;}
 
 private:
 
@@ -60,6 +62,7 @@ private:
 Interval operator- (const Timestamp& a, const Timestamp& b);
 Interval operator+ (const Interval& a, const Interval& b);
 Interval operator* (double a, const Interval& b);
+Interval operator* (const Interval& b, double a);
 double operator/ (const Interval& a, const Interval& b);
 
 bool operator<= (const Interval& a, const Interval& b);

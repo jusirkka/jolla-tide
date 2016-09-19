@@ -131,6 +131,8 @@ QString TideEvent::description () const {
     case TideEvent::lastquartermoon:
         return "Last Quarter Moon";
     case TideEvent::rawreading:
+    case TideEvent::invalid:
+        return "Cannot find any events";
     default:
         return "Raw reading";
     }
@@ -197,6 +199,8 @@ QString TideEvent::shortname () const {
         return "full-moon";
     case TideEvent::lastquartermoon:
         return "last-quarter-moon";
+    case TideEvent::invalid:
+        return "invalid";
     case TideEvent::rawreading:
     default:
         return "raw-reading";

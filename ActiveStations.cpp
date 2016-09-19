@@ -1,6 +1,7 @@
 #include "ActiveStations.h"
 #include "StationProvider.h"
 #include "Database.h"
+#include "PointsWindow.h"
 #include <QDebug>
 #include <QDateTime>
 
@@ -11,10 +12,12 @@ Tide::ActiveStations::ActiveStations(StationProvider* parent):
     QAbstractListModel(parent),
     m_Parent(parent)
 {
+    // TODO check that these are still valid: ie factory not removed
     QStringList actives = Database::ActiveStations();
     foreach (QString saved, actives) {
         append(saved);
     }
+    connect(m_Parent, SIGNAL(stationChanged(const QString&)), this, SLOT(stationChanged(const QString&)));
 
 }
 
@@ -87,12 +90,12 @@ void Tide::ActiveStations::computeNextEvent() {
     while (ev.hasNext()) {
         ev.next();
         QTimer* r = ev.value().recompute;
-        if (r->isActive()) {
+        if (r->isActive() && ev.value().next.type != TideEvent::invalid) {
             continue;
         }
         const Station& s = m_Parent->station(ev.key());
         TideEvent::Organizer org;
-        Timestamp now = Timestamp::fromPosixTime(QDateTime::currentMSecsSinceEpoch() / 1000);
+        Timestamp now = Timestamp::now();
         Timestamp start = now;
         while (org.isEmpty()) {
             Timestamp then = start + Interval::fromSeconds(3600*6);
@@ -106,6 +109,27 @@ void Tide::ActiveStations::computeNextEvent() {
         QModelIndex c = index(m_Stations.indexOf(ev.key()));
         emit dataChanged(c, c);
     }
+}
+
+void Tide::ActiveStations::stationChanged(const QString& key) {
+    if (!m_Events.contains(key)) return;
+
+    QTimer* r = m_Events[key].recompute;
+    const Station& s = m_Parent->station(key);
+    TideEvent::Organizer org;
+    Timestamp now = Timestamp::now();
+    Timestamp start = now;
+    while (org.isEmpty()) {
+        Timestamp then = start + Interval::fromSeconds(3600*6);
+        s.predictTideEvents(start, then, org);
+        start = then;
+    }
+    TideEvent event = org.first();
+    m_Events[key].next = event;
+    Interval tmout = event.time - now;
+    r->start(tmout.seconds * 1000);
+    QModelIndex c = index(m_Stations.indexOf(key));
+    emit dataChanged(c, c);
 }
 
 
@@ -140,5 +164,16 @@ void Tide::ActiveStations::movetotop(int row) {
     computeNextEvent();
     endInsertRows();
     emit dataChanged(index(0), index(m_Stations.size() - 1));
+}
+
+
+void Tide::ActiveStations::showpoints(int row) {
+    QString key = m_Stations[row];
+    const Station& s = m_Parent->station(key);
+    // TODO: only StationProvider should know about this
+    QStringList parts = key.split(QChar::fromLatin1(30));
+    PointsWindow* w = new PointsWindow(parts[0], parts[1], s);
+    w->resize(800, 200);
+    w->show();
 }
 

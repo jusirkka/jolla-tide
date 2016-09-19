@@ -6,6 +6,8 @@
 #include "Amplitude.h"
 #include "Speed.h"
 #include "Angle.h"
+#include "Complex.h"
+
 #include <QList>
 
 namespace Tide {
@@ -23,6 +25,7 @@ public:
     virtual ~RunningSet();
 
     void append(const Amplitude& a, const Speed& w, const Angle& phase);
+    void append(const Complex& c, const Speed& w);
 
 private:
 

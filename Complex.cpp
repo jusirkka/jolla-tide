@@ -1,5 +1,7 @@
 #include "Complex.h"
 
+using namespace Tide;
+
 Complex::Complex(double r, double i): x(r), y(i) {}
 
 Complex Complex::conjugate() const {

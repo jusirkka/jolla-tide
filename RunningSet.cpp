@@ -38,3 +38,7 @@ RunningSet::~RunningSet() {}
 void RunningSet::append(const Amplitude& a, const Speed& w, const Angle& p) {
     m_Constituents.append(Data(a, w, p));
 }
+
+void RunningSet::append(const Complex& c, const Speed& w) {
+    m_Constituents.append(Data(m_Datum.unit() * c.mod(), w, Angle::fromRadians(c.arg())));
+}

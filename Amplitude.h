@@ -74,6 +74,10 @@ public:
     Amplitude(): value(0), L(0), T(0) {}
 
 
+    Amplitude null() {return Amplitude(0, L, T);}
+    Amplitude unit() {return Amplitude(1, L, T);}
+
+
 private:
 
     Amplitude(double m, int l, int t): value(m), L(l), T(t) {}

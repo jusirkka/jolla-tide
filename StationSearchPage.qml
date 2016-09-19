@@ -35,8 +35,10 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: searchField.bottom
+        anchors.bottom: backButton.top
         visible: locationListView.count == 0
         horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
         //% "Search and select new location"
         text: qsTrId("tide-search_and_select_location")
         font.pixelSize: Theme.fontSizeLarge
@@ -45,14 +47,29 @@ Item {
 
     ListView {
         id: locationListView
+        height: parent.height * 0.8
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: placeHolder.bottom
-        anchors.bottom: parent.bottom
+        anchors.top: searchField.bottom
+        anchors.bottom: backButton.top
+        visible: locationListView.count != 0
         model: stationModel
         delegate: StationSearchDelegate {
             width: parent.width
             height: Theme.itemSizeMedium
         }
     }
+
+    Button {
+        id: backButton
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        text: "Back"
+        onClicked: stackView.pop()
+    }
+
+
 }

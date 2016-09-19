@@ -37,6 +37,7 @@ public:
 
     // CamelCasing waived here for consistency with sunrise, sunset.
     enum Type {
+        invalid,
         max, min, slackrise, slackfall, markrise, markfall,
         sunrise, sunset, moonrise, moonset, newmoon, firstquartermoon, fullmoon, lastquartermoon,
         rawreading

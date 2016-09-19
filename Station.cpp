@@ -30,9 +30,9 @@
 
 using namespace Tide;
 
-Station::Station(const QString& aName,
-                 const Coordinates& sCoordinates,
-                 const ConstituentSet* constituents):
+Station::Station(ConstituentSet* constituents,
+                 const QString& aName,
+                 const Coordinates& sCoordinates):
     m_Constituents(constituents),
     m_EventPrecision(Interval::fromSeconds(15)),
     m_Name(aName),
@@ -44,10 +44,13 @@ Station::Station(const QString& aName,
 {}
 
 
-Station::~Station() {}
+Station::~Station() {
+    delete m_Constituents;
+}
 
 
 Amplitude Station::predictTideLevel(const Timestamp& predictTime) const {
+    if (!isvalid()) return Amplitude();
     return m_Constituents->datum() + m_Constituents->tideDerivative(predictTime, 0);
 }
 
@@ -61,6 +64,12 @@ void Station::predictTideEvents(const Timestamp& startTime,
                                 TideEventsFilter filter) const {
 
     if (startTime >= endTime) {
+        addInvalid(organizer, startTime);
+        return;
+    }
+
+    if (!isvalid()) {
+        addInvalid(organizer, endTime);
         return;
     }
 
@@ -106,7 +115,7 @@ void Station::predictTideEvents(const Timestamp& startTime,
 // Analogous to predictTideEvents for raw readings.
 void Station::predictRawEvents(const Timestamp& startTime, const Timestamp& endTime, const Interval& step,
                                TideEvent::Organizer& organizer) const {
-    if (startTime > endTime) {
+    if (startTime >= endTime || !isvalid()) {
         return;
     }
 
@@ -121,7 +130,7 @@ void Station::extendRange(TideEvent::Organizer& organizer,
                           TideEventsFilter filter) const {
 
     Interval zero = Interval();
-    if (range == zero) {
+    if (range == zero || !isvalid()) {
         return;
     }
 
@@ -139,7 +148,7 @@ void Station::extendRange(TideEvent::Organizer& organizer,
 
 void Station::extendRange(TideEvent::Organizer& organizer, const Interval& delta, int steps) const {
 
-    if (steps == 0) {
+    if (steps == 0 || !isvalid()) {
         return;
     }
 
@@ -464,3 +473,11 @@ void Station::addToOrganizer(TideEvent::Organizer& organizer, TideEvent::Type tp
     event.level = predictTideLevel(ts);
     organizer.insert(ts, event);
 }
+
+void Station::addInvalid(TideEvent::Organizer& org, const Timestamp& ts) const {
+    TideEvent event;
+    event.time = ts;
+    event.type = TideEvent::invalid;
+    org.insert(ts, event);
+}
+

@@ -25,10 +25,54 @@
 using namespace Tide;
 
 Speed Speed::fromRadiansPerSecond(double val) {
+    if (val < 0) throw Negative("Only non-negative angular speeds are accepted");
     return Speed(val);
 }
 
 Speed Speed::fromDegreesPerHour(double val) {
+    if (val < 0) throw Negative("Only non-negative angular speeds are accepted");
     return Speed(val * M_PI / 648000.0);
+}
+
+double Speed::dph() const {
+    return radiansPerSecond * 648000.0 / M_PI;
+}
+
+Speed& Speed::operator+= (const Speed& a) {
+    radiansPerSecond += a.radiansPerSecond;
+    return *this;
+}
+
+bool (Tide::operator==) (const Speed& a, const Speed& b) {
+    static const double eps = 0.0001;
+    double den = 0.5 * (a.radiansPerSecond + b.radiansPerSecond);
+    if (den == 0) return true; // both nul
+    return fabs(a.radiansPerSecond - b.radiansPerSecond) / den < eps;
+}
+
+bool (Tide::operator!=) (const Speed& a, const Speed& b) {
+    return !(a == b);
+}
+
+bool (Tide::operator<) (const Speed& a, const Speed& b) {
+    if (a == b) return false;
+    return a.radiansPerSecond < b.radiansPerSecond;
+}
+
+bool (Tide::operator<=) (const Speed& a, const Speed& b) {
+    if (a == b) return true;
+    return a.radiansPerSecond < b.radiansPerSecond;
+}
+
+bool (Tide::operator>) (const Speed& a, const Speed& b) {
+    return !(a <= b);
+}
+
+bool (Tide::operator>=) (const Speed& a, const Speed& b) {
+    return !(a < b);
+}
+
+Speed (Tide::operator*) (double a, const Speed& b) {
+    return Speed(a * b.radiansPerSecond);
 }
 

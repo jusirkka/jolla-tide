@@ -1,0 +1,468 @@
+# $Id: congen_input.txt,v 1.3 2004/08/16 17:52:15 flaterco Exp $
+# Congen input to generate constituents for harmonics.
+# Please use Congen version 1.4.7 or later.
+#
+# Format of input:
+#   For basic constituents:
+#     name  Basic      T  s  h  p  p1 c  xi v vp dvpp Q R f#
+#   For compound constituents (trailing zeroes are optional):
+#     name  Compound   O1 K1 P1 M2 S2 N2 L2 K2 Q1 NU2 S1 M1-DUTCH LDA2
+#   For comment lines:
+#     # blah blah blah
+#   For approximated Doodson constituents:
+#     name  Doodson    T  s  h  p  p1 c   numsatellites
+#         ... followed by IOS style satellite records ...
+#
+# Constituent collisions
+# ----------------------
+#
+# The Canadian and NOS systems have many subtle differences.  Wallner
+# gives the following recipe for converting Canadian data to the NOS
+# system.
+#
+# NOS  NOS Can.  Modification of Canadian Constants
+# Name No. Name  __________________________________
+# SA   22  SA    Subtract 77.1° from the phase.
+# MF   24  MF    Differences significant but not correctable.
+# M1   18  NO1   Multiply amplitude of NO1 by 0.701.
+# S1   17  S1    Add 154.3° to the phase, multiply amplitude by 0.699.
+# OO1  15  OO1   Differences moderate but not correctable.
+# R2   28  R2    Subtract 5.1° from the phase, multiply amplitude by 1.233.
+# 2MK3 34  MO3   No modifications. Amplitude 0.9 to 1.14, phase ±4.2°.
+#
+# M1 versus NO1 is moot, as is 2MK3 versus MO3.  I've added
+# constituents SA-IOS, MF-IOS, S1-IOS, OO1-IOS, and R2-IOS to
+# approximate the others.  S1, SA, and R2 are adjusted as above in
+# Canadian data via Wallner but not via LaPointe.  It's hard to say
+# what data sources other than Canada might need the IOS constituents.
+#
+# MNS2 and EPS2 are nearly indistinguishable.
+# KJ2 and ETA2 are nearly indistinguishable.
+# MP1 and TAU1 are different in eq args and node factors.
+# KP1 is significantly different from PHI1.
+# RP1 and PSI1 differ by a 180 degree shift.
+# TK1 and PI1 are different in eq args and node factors.
+# KQ1 and UPS1 might ought to be indistinguishable, but lacking a
+#   Darwin style formula for UPS1, it's hard to tell if it's the
+#   Doodson approximation causing UPS1 to bounce around or if they
+#   are meant to have slightly different eq args and node factors.
+# M1 and NO1 are different because M1 has a curse on it (see below).
+# BET1 is nearly indistinguishable from an unused constituent in SP 98
+#   Table 2 (A19).
+# THE1 and LambdaO1 differ by a 180 degree shift.
+#
+# Your mileage may vary.  The glossary of SP 98 asserts that KP1 and
+# PHI1 are the same, that RP1 and PSI1 are the same, that TK1 and
+# PI1 are the same, and that THE1 and LambdaO1 are the same.
+#
+# Aliases and equivalences
+# ------------------------
+#
+# 3MSN10 is an alias for 3MNS10.
+# 4MSN12 is an alias for 4MNS12.
+# LAM2 and LABDA2 are aliases for LDA2.
+# These have all been replaced by the latter names.
+#
+# H1 is an alias for ALP2; H2 is an alias for BET2.  We use H1 and H2
+# here because that is what appears in the present batch of data.
+#
+# The NOS MSF is an alias for SM; see below.  We use the name MSF.
+#
+# Typographically, NU and V are interchangeable.
+#
+# Lots of aliases (not to mention lots of cases where a given
+# constituent name is ambiguous) can be found in the IHO constituent
+# list that is currently available at
+# http://www.iho.shom.fr/COMMITTEES/TC/Constituents.pdf (it will be
+# replicated in the congen and harmbase2 distributions shortly).  If
+# two constituents have the same XDO (Extended Doodson Number), then
+# they are identical.  If not, then they are different.
+#
+# Confusingly, the IHO list associates both MQ3 and NO3 with two
+# different Doodson codes having all the same speeds:
+#
+#   MQ3   42.382 765   3 356 554   C XZA ZZY
+#   NO3   42.382 765   3 356 554   C XZA ZZY
+#   MQ3   42.382 765   3 356 555   C XZA ZZZ
+#   NO3   42.382 765   3 356 555   C XZA ZZZ
+#
+# Deriving them according to the harmonic method used in the U.S. gives
+# completely identical results for M2+Q1 or N2+O1.
+#
+# M1 / NO1
+# --------
+#
+# NOS node factors for M1 contain a historical error that make them about
+# 50% greater than they should be.  M1 amplitudes are correspondingly
+# smaller to compensate.
+#
+# M1 has two formulas in SP 98 Table 2.  The first yields the correct
+# speed for the constituent, while the second yields the correct
+# equilibrium arguments (SP 98 p. 42).  The correct thing to do *here*
+# is to use the second formula since congen automatically compensates
+# the speed when the Q variable gets a nonzero multiplier.
+# M1  Basic  1 -1 1 0 0 -90    1 -1 0 0 1 0     206
+# Speed = 14.4966939
+#
+# Wallner writes:
+#
+#    In SP98, "Manual of Harmonic Analysis and Prediction of Tides" two
+#    approaches are given for M1, which is a combination of two terms
+#    in Darwin's theory, A16 and A23. (Why wasn't A71 included in the
+#    combination? It is labelled (M1) in Table 2, its speed is half
+#    that of M2 and its coefficient is larger than that of A16 or
+#    A23!!)
+#
+#    V0 for the first  is T -s +h +p -90° and u is    -nu -Qu.
+#    V0 for the second is T -s +h    -90° and u is xi -nu +Q.
+#
+#    The terms Qu and Q are such that the equilibrium arguments at the
+#    start of the prediction interval are the same but the variable p
+#    is absorbed in Q in the second method and held fixed for the
+#    interval. Not only are there two approaches, alternate formulas
+#    are given for some equations in which some elements are replaced
+#    by their mean values. The tables in SP98 use these approximations.
+#
+# Canada uses NO1 = N2 - O1.  They don't use a constituent named M1.
+#
+# Regarding Japan's M1, Wallner wrote (1997):
+#    The text with the Japanese constituents I got a little over two
+#    year ago gives the argument of M1 as T - s + h - 90 as in the
+#    second NOS definition.  The node factor f and phase u are
+#    defined by:
+#      f cos(u) = 2 * cos(p) + 0.4 cos(p-N)
+#      f sin(u) =     sin(p) + 0.2 sin(p-N)
+#    This gives essentially the NOS values.
+#
+# Upon further review in year 2000, Wallner wrote:
+#    The Japanese u and f are reasonably close to the second SP98
+#    formulation.  The Japanese constituent phases could be "corrected"
+#    to work with first formulation in TIDES by subtracting p, but
+#    since this is a variable that's not much help.  Considering it a
+#    new constituent, or a different version of M1, would work
+#    better.  The German M1 has the right speed, half that of M2, but
+#    I'm not sure what u and f are for it.  The IHO data set has both
+#    M1 and NO1, but again I'm not sure what their M1 is.  The French M1
+#    appears to be NO1 exactly.  The Mexican data I have include another
+#    undefined M1.
+#
+# Regarding Horn's publications, which have M1 = A71 but also NO1,
+# Casement wrote:
+#   I can't agree with his notation here.  What he calls NO1 is a
+#   lunisolar tide and would be better called M1 - as it is by other
+#   authors.  His M1 is in fact a shallow-water tide (= M3 - M2 +
+#   180°) and would be better called MM1.
+#
+# The Dutch define the following constituents:
+#   M1 = SP98 term M1 formula #1 (I have called this M1-DUTCH)
+#   M1A = SP98 term A23
+#   M1B = SP98 term A16
+#   M1C = SP98 term A71
+#   M1D = SP98 term M1 formula #2
+# M1A, M1B, and M1D are not used in the data I have received.  M1C is.
+# M1-DUTCH is used indirectly in the building of M7 (complete with
+# exaggerated node factors).  The IOS formulation of M7 is 3.5 * M2!
+#
+# In summary, M1 is a minor constituent that doesn't deserve to be
+# such an inconvenience.  Until someone complains, I am just going to
+# use the NOS M1 for all data containing a constituent named M1 and
+# hope for the best.  Future producers of harmonic constants are
+# advised to abolish M1 and just use NO1.
+#
+# Other Problems
+# --------------
+#
+# NOTE:  Like IOS, Casement's breakdowns of constituents use inverted
+# phases for the constant angles relative to SP98.
+#
+# For OQ2, Horn uses O1 + Q1:
+# OQ2  Compound  1 0 0 0 0 0 0 0 1
+# OQ2  Basic     2 -5 2 1 0 180    etc.
+# but Canada uses a different formulation.
+# Wallner wrote (in 1997):
+#   First, a correction to the former correction of OQ2.  The TIDES
+#   constituent assumed that this was compound tide O1+Q1 which is not
+#   correct.  The Canadian definition should be used.  The Canadian
+#   node argument and factor are difficult to convert to the TIDES
+#   system and are set to 0 and 1.  The error should be no more than
+#   about 20% of the constituent value.
+#
+# The Dutch use OQ2 = O1 + Q1.  I've called this OQ2-HORN.
+#
+# The MSF used by NOS is not derived using the formula in Table 2 but
+# is instead calculated as a compound constituent (SP 98 p. 48).  This
+# causes u to be nonzero.  Casement writes:
+#   The NOS "MSf" is really SM0, a shallow-water tide = S2 - M2.  It
+#   almost certainly does have a greater amplitude than the lunisolar
+#   tide of the same frequency.
+# This suggests that non-U.S. data might be using the "real" MSF.
+#
+# All Doodson constituents are approximate (we throw out the latitude-
+# dependent bits).
+#
+# Mexican data contain A7 and LDA1.  Wallner writes:
+#   The data set in the Anales del Instituto d Geofisica, v14 pp45-69
+#   (1969) give 47 constituents for 23 stations. There is no LDA1 but
+#   both A4 and A7 are included. These are presumably are those terms
+#   in Table 2 of SP98, which is one of the references in the
+#   article. My marginalia say A4 = MsM and A7 = Mtm.
+# My guess would be that LDA1 = LambdaO1, but most data sets having LDA1
+# also have THE1, which would cancel it out (they are nearly identical
+# except for a 180 degree shift).  So at this point I'm just stripping
+# LDA1 from the data.
+#
+# Problems with old harmonics.canadian and harmonics.japan
+# --------------------------------------------------------
+#
+# harmonics.canadian was built by Jean-Pierre LaPointe at a time when
+# all this was still voodoo to me.  harmonics.japan was mostly copied
+# from harmonics.canadian by Toru Suzuki.  By the time I discovered
+# some weird things that I needed to ask about, Jean-Pierre had
+# dropped off the face of the Earth.
+#
+# The following features are not preserved in harmonics.world.
+#
+# Jean-Pierre used the NOS definitions for S1, SA, and R2 without making
+# the adjustments mentioned above.  I've redirected SA, MF, S1, OO1, and
+# R2 to the IOS versions for harmonics.canadian and assumed that the NOS
+# versions were correct for harmonics.japan.
+#
+# NO1 in harmonics.canadian was N2 - O1, but with node factors from NOS M1.
+#   NO1  Basic  1 -1 1 1 0 -90    0 -1 0 0 0 0     206
+# I've replaced this by the normal NO1 formulation.
+#
+# harmonics.canadian used MP1 for TAU1.  I've replaced it with the
+# Doodson TAU1 formulation and hope it's better that way.
+#
+# M1 in harmonics.japan was same as NO1 in harmonics.canadian except
+# speed was changed to 14.4920521.  I've replaced this by the NOS M1.
+#
+# Both files used an OP2 whose argument was shifted by 180 degrees from
+# O1 + P1.  I've used a normal OP2.
+#
+# Both files used an OQ2 that was O1 + Q1 with a 180 degree shift.
+# I've replaced this with the Canadian (and IOS) form OQ2.
+#
+# Both files used an MKS2 that matched M2 + K2 - S2 in speed only.  The
+# derivation of it remains a mystery.
+#
+# ----------------------------------------------------------------------
+#
+# The historical 37 NOS constituents.
+#
+J1    Basic  1 1 1 -1 0 -90    0 -1 0 0 0 0     76
+K1    Compound  0 1 0 0 0 0 0 0
+K2    Compound  0 0 0 0 0 0 0 1
+L2    Compound  0 0 0 0 0 0 1 0
+M1    Basic  1 -1 1 0 0 -90    1 -1 0 0 1 0     206
+M2    Compound  0 0 0 1 0 0 0 0
+M3    Basic  3 -3 3 0 0 0      3 -3 0 0 0 0     149
+M4    Compound  0 0 0 2 0 0 0 0
+M6    Compound  0 0 0 3 0 0 0 0
+M8    Compound  0 0 0 4 0 0 0 0
+N2    Compound  0 0 0 0 0 1 0 0
+2N2   Basic  2 -4 2 2 0 0      2 -2 0 0 0 0     78
+O1    Compound  1 0 0 0 0 0 0 0
+OO1   Basic  1 2 1 0 0 -90     -2 -1 0 0 0 0    77
+P1    Compound  0 0 1 0 0 0 0 0
+Q1    Compound  0 0 0 0 0 0 0 0 1
+2Q1   Basic  1 -4 1 2 0 90     2 -1 0 0 0 0     75
+R2    Basic  2 0 1 0 -1 180    0 0 0 0 0 0      1
+S1    Basic  1 0 0 0 0 0       0 0 0 0 0 0      1
+S2    Compound  0 0 0 0 1 0 0 0
+S4    Compound  0 0 0 0 2 0 0 0
+S6    Compound  0 0 0 0 3 0 0 0
+T2    Basic  2 0 -1 0 1 0      0 0 0 0 0 0      1
+LDA2  Basic  2 -1 0 1 0 180    2 -2 0 0 0 0     78
+MU2   Basic  2 -4 4 0 0 0      2 -2 0 0 0 0     78
+NU2   Basic  2 -3 4 -1 0 0     2 -2 0 0 0 0     78
+RHO1  Basic  1 -3 3 -1 0 90    2 -1 0 0 0 0     75
+MK3   Compound  0 1 0 1 0 0 0 0
+2MK3  Compound  0 -1 0 2 0 0 0 0
+MN4   Compound  0 0 0 1 0 1 0 0
+MS4   Compound  0 0 0 1 1 0 0 0
+2SM2  Compound  0 0 0 -1 2 0 0 0
+MF    Basic  0 2 0 0 0 0       -2 0 0 0 0 0     74
+MSF   Compound  0 0 0 -1 1 0 0 0
+MM    Basic  0 1 0 -1 0 0      0 0 0 0 0 0      73
+SA    Basic  0 0 1 0 0 0       0 0 0 0 0 0      1
+SSA   Basic  0 0 2 0 0 0       0 0 0 0 0 0      1
+#
+# IOS clashes with NOS
+#
+SA-IOS  Doodson  0 0 1 0 -1 0    0
+MF-IOS  Doodson   0 2 0 0  0 0    0
+S1-IOS  Doodson   1 0 0 0 1 -90   2
+           0  0 -2 .0  0.3534     0  1  0 .50 0.0264
+OO1-IOS Doodson   1  2  1  0  0 -90    8
+            -2 -1  0 .50 0.0037    -2  0  0 .0  0.1496    -2  1  0 .0  0.0296
+            -1  0  0 .25 0.0240R1  -1  1  0 .25 0.0099R1   0  1  0 .0  0.6398
+             0  2  0 .0  0.1342     0  3  0 .0  0.0086
+R2-IOS  Doodson   2 0 1 0 -1 180    2
+             0  0  2 .50 0.2535     0  1  2 .0  0.0141
+#
+# Unusual constituents used in Mexican data
+#
+A7   Basic  0 3 0 -1 0 0      -2 0 0 0 0 0     74
+# I guessed LambdaO1 (LDA2 - O1), which makes no sense in context
+# LDA1 Compound -1 0 0 0 0 0 0 0 0 0 0 0 1
+#
+# All other constituents added during the original Harmonic Convergence.
+#
+2MK5    Compound      0  1  0  2  0  0  0  0
+2MK6    Compound      0  0  0  2  0  0  0  1
+2MN2    Compound      0  0  0  2  0 -1  0  0
+2MN6    Compound      0  0  0  2  0  1  0  0
+2MS6    Compound      0  0  0  2  1  0  0  0
+2NM6    Compound      0  0  0  1  0  2  0  0
+2SK5    Compound      0  1  0  0  2  0  0  0
+2SM6    Compound      0  0  0  1  2  0  0  0
+3MK7    Compound      0  1  0  3  0  0  0  0
+3MN8    Compound      0  0  0  3  0  1  0  0
+3MS2    Compound      0  0  0  3 -2  0  0  0
+3MS4    Compound      0  0  0  3 -1  0  0  0
+3MS8    Compound      0  0  0  3  1  0  0  0
+ALP1  Doodson  1 -5 3 1 0 90     2
+            -1  0  0 .75 0.0360R1   0 -1  0 .00 0.1906
+BET1  Doodson  1 -1 -1 1 0 -90   1
+             0 -1  0 .00 0.2266
+CHI1  Basic  1 -1 3 -1 0 -90   0 -1 0 0 0 0     76
+H1    Doodson  2 -2 1 0 1 180    2
+             0 -1  0 .50 0.0224     1  0 -1 .50 0.0447
+H2    Doodson  2 -2 3 0 -1 0     1
+             0 -1  0 .50 0.0217
+KJ2   Basic  2 1 2 -1 0 0      0 -2 0 0 0 0     79
+ETA2  Doodson  2 1 2 -1 0 0      7
+             0 -1  0 .50 0.0187     0  1  0 .0  0.4355     0  2  0 .0  0.0467
+             1  0  0 .75 0.0747R2   1  1  0 .75 0.0482R2   1  2  0 .75 0.0093R2
+             2  0  0 .50 0.0078
+KQ1   Basic  1 3 1 -1 0 -90    -2 -1 0 0 0 0    77
+UPS1  Doodson  1 3 1 -1 0 -90    5
+            -2  0  0 .00 0.0611     0  1  0 .00 0.6399     0  2  0 .00 0.1318
+             1  0  0 .25 0.0289R1   1  1  0 .25 0.0257R1
+M10   Compound 0 0 0 5 0 0 0 0
+M12   Compound 0 0 0 6 0 0 0 0
+MK4   Compound       0  0  0  1  0  0  0  1
+MKS2  Compound       0  0  0  1 -1  0  0  1
+MNS2  Compound       0  0  0  1 -1  1  0  0
+EPS2  Doodson   2 -5 4 1 0 0   3
+            -1 -1  0 .25 0.0075R2  -1  0  0 .25 0.0402R2   0 -1  0 .50 0.0373
+MO3   Compound 1 0 0 1 0 0 0 0
+MP1   Basic  1 -2 3 0 0 -90    0 -1 0 0 0 0     76
+TAU1  Doodson  1 -2 3 0 0 -90    5
+            -2  0  0 .0  0.0446    -1  0  0 .25 0.0426R1   0 -1  0 .50 0.0284
+             0  1  0 .50 0.2170     0  2  0 .50 0.0142
+MPS2  Compound 0 0 1 1 0 0 0 0 0 0 -1
+MSK6  Compound       0  0  0  1  1  0  0  1
+MSM   Basic  0 1 -2 1 0 0      0 0 0 0 0 0      73
+MSN2  Compound       0  0  0  1  1 -1  0  0
+MSN6  Compound       0  0  0  1  1  1  0  0
+NLK2  Compound 0 0 0 0 0 1 1 -1
+NO1   Compound -1 0 0 0 0 1 0 0
+OP2   Compound       1  0  1  0  0  0  0  0
+OQ2   Doodson 2 -5 2 3 0 0   2
+            -1  0  0 .25 0.1042R2   0 -1  0 .50 0.0386
+PHI1  Basic 1 0 3 0 0 -90     0 0 0 0 0 0      1
+KP1   Compound 0 0 -1 0 0 0 0 1
+PI1   Basic 1 0 -2 0 1 90     0 0 0 0 0 0      1
+TK1   Basic 1 0 -2 0 1 90     0 0 1 0 0 0      227
+PSI1  Basic 1 0 2 0 -1 -90    0 0 0 0 0 0      1
+RP1   Basic 1 0 2 0 -1 90     0 0 0 0 0 0      1
+S3    Basic 3 0 0 0 0 0       0 0 0 0 0 0      1
+SIG1  Basic 1 -4 3 0 0 90     2 -1 0 0 0 0     75
+SK3   Compound       0  1  0  0  1  0  0  0
+SK4   Compound 0 0 0 0 1 0 0 1
+SN4   Compound       0  0  0  0  1  1  0  0
+SNK6  Compound 0 0 0 0 1 1 0 1
+SO1   Basic 1 2 -1 0 0 -90    0 -1 0 0 0 0     76
+SO3   Compound       1  0  0  0  1  0  0  0
+THE1  Basic 1 1 -1 1 0 -90    0 -1 0 0 0 0     76
+#
+# Remaining constituents merged from harmonics.anchorage 2001-01
+#
+2PO1     Compound    -1  0  2  0  0  0  0  0
+2NS2     Compound     0  0  0  0 -1  2  0  0
+MLN2S2   Compound     0  0  0  1 -2  1  1  0
+2ML2S2   Compound     0  0  0  2 -2  0  1  0
+SKM2     Compound     0  0  0 -1  1  0  0  1
+2MS2K2   Compound     0  0  0  2  1  0  0 -2
+MKL2S2   Compound     0  0  0  1 -2  0  1  1
+M2(KS)2  Compound     0  0  0  1 -2  0  0  2
+2SN(MK)2 Compound     0  0  0 -1  2  1  0 -1
+2KM(SN)2 Compound     0  0  0  1 -1 -1  0  2
+NO3      Compound     1  0  0  0  0  1  0  0
+2MLS4    Compound     0  0  0  2 -1  0  1  0
+ML4      Compound     0  0  0  1  0  0  1  0
+N4       Compound     0  0  0  0  0  2  0  0
+SL4      Compound     0  0  0  0  1  0  1  0
+MNO5     Compound     1  0  0  1  0  1  0  0
+2MO5     Compound     1  0  0  2  0  0  0  0
+MSK5     Compound     0  1  0  1  1  0  0  0
+3KM5     Compound     0  3  0  1  0  0  0  0
+2MP5     Compound     0  0  1  2  0  0  0  0
+3MP5     Compound     0  0 -1  3  0  0  0  0
+MNK5     Compound     0  1  0  1  0  1  0  0
+2NMLS6   Compound     0  0  0  1 -1  2  1  0
+MSL6     Compound     0  0  0  1  1  0  1  0
+2ML6     Compound     0  0  0  2  0  0  1  0
+2MNLS6   Compound     0  0  0  2 -1  1  1  0
+3MLS6    Compound     0  0  0  3 -1  0  1  0
+2MNO7    Compound     1  0  0  2  0  1  0  0
+2NMK7    Compound     0  1  0  1  0  2  0  0
+2MSO7    Compound     1  0  0  2  1  0  0  0
+MSKO7    Compound     1  0  0  1  1  0  0  1
+2MSN8    Compound     0  0  0  2  1  1  0  0
+2(MS)8   Compound     0  0  0  2  2  0  0  0
+2(MN)8   Compound     0  0  0  2  0  2  0  0
+2MSL8    Compound     0  0  0  2  1  0  1  0
+4MLS8    Compound     0  0  0  4 -1  0  1  0
+3ML8     Compound     0  0  0  3  0  0  1  0
+3MK8     Compound     0  0  0  3  0  0  0  1
+2MSK8    Compound     0  0  0  2  1  0  0  1
+2M2NK9   Compound     0  1  0  2  0  2  0  0
+3MNK9    Compound     0  1  0  3  0  1  0  0
+4MK9     Compound     0  1  0  4  0  0  0  0
+3MSK9    Compound     0  1  0  3  1  0  0  0
+4MN10    Compound     0  0  0  4  0  1  0  0
+3MNS10   Compound     0  0  0  3  1  1  0  0
+4MS10    Compound     0  0  0  4  1  0  0  0
+3MSL10   Compound     0  0  0  3  1  0  1  0
+3M2S10   Compound     0  0  0  3  2  0  0  0
+4MSK11   Compound     0  1  0  4  1  0  0  0
+4MNS12   Compound     0  0  0  4  1  1  0  0
+5MS12    Compound     0  0  0  5  1  0  0  0
+4MSL12   Compound     0  0  0  4  1  0  1  0
+4M2S12   Compound     0  0  0  4  2  0  0  0
+#
+# Other constituents needed by Dutch data 2001-01
+#
+# M1C is A71 in Table 2 of SP98
+M1C       Basic 1 -1 1 0 0 0   1 -1 0 0 0 0   144
+3MKS2     Compound  0 0 0 3 -1 0 0 -1
+OQ2-HORN  Compound  1 0 0 0 0 0 0 0 1
+MSK2      Compound  0 0 0 1 1 0 0 -1
+MSP2      Compound  0 0 -1 1 0 0 0 0 0 0 1
+2MP3      Compound  0 0 -1 2 0 0 0 0
+4MS4      Compound  0 0 0 4 -2 0 0 0
+2MNS4     Compound  0 0 0 2 -1 1 0 0
+2MSK4     Compound  0 0 0 2 1 0 0 -1
+3MN4      Compound  0 0 0 3 0 -1 0 0
+2MSN4     Compound  0 0 0 2 1 -1 0 0
+3MK5      Compound  0 -1 0 3 0 0 0 0
+3MO5      Compound  -1 0 0 3 0 0 0 0
+3MNS6     Compound  0 0 0 3 -1 1 0 0
+4MS6      Compound  0 0 0 4 -1 0 0 0
+2MNU6     Compound  0 0 0 2 0 0 0 0 0 1
+3MSK6     Compound  0 0 0 3 1 0 0 -1
+MKNU6     Compound  0 0 0 1 0 0 0 1 0 1
+3MSN6     Compound  0 0 0 3 1 -1 0 0
+M7        Compound  0 0 0 3 0 0 0 0 0 0 0 1
+2MNK8     Compound  0 0 0 2 0 1 0 1
+2(MS)N10  Compound  0 0 0 2 2 1 0 0
+#
+# Other constituents needed by German data 2004-08-11
+#
+# This is indistinguishable from NO3
+# MQ3       Compound  0 0 0 1 0 0 0 0 1
+MNUS2     Compound  0 0 0 1 -1 0 0 0 0 1
+2MK2      Compound  0 0 0 2 0 0 0 -1

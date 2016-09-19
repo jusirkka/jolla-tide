@@ -52,12 +52,13 @@ public:
 
 
 
-    Station(const QString& name, const Coordinates& coordinates, const ConstituentSet* constituents);
+    Station(ConstituentSet* constituents = 0, const QString& name = QString(), const Coordinates& coordinates = Coordinates());
 
     virtual ~Station();
 
 
     bool isCurrent() const {return m_Constituents->isCurrent();}
+    bool isvalid() const {return m_Constituents != 0;}
 
     // Get heights or velocities.
     Amplitude predictTideLevel(const Timestamp& predictTime) const;
@@ -179,6 +180,7 @@ protected:
                                bool& isRising_out) const;
 
     void addToOrganizer(TideEvent::Organizer&, TideEvent::Type, const Timestamp&) const;
+    void addInvalid(TideEvent::Organizer&, const Timestamp&) const;
 
 protected:
 

@@ -8,6 +8,7 @@ Rectangle {
 
     MouseArea {
         id: mus
+        enabled: model.icon !== "tide-invalid"
         anchors.fill: parent
         property bool highlighted: pressed && containsMouse
         acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -80,6 +81,11 @@ Rectangle {
             text: qsTrId("tide-move_to_top")
             visible: model.index !== 0
             onTriggered: activeStationsModel.movetotop(model.index)
+        }
+        MenuItem {
+            //% "Show points"
+            text: qsTrId("tide-show-points")
+            onTriggered: activeStationsModel.showpoints(model.index)
         }
     }
 }

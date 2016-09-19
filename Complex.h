@@ -3,6 +3,7 @@
 
 #include <cmath>
 
+namespace Tide {
 class Complex {
 public:
 
@@ -54,6 +55,8 @@ inline Complex operator/ (const Complex& z1, const Complex& z2) {
 
 inline const Complex exp(Complex c) {
   return ::exp(c.x) * Complex(::cos(c.y), ::sin(c.y));
+}
+
 }
 
 

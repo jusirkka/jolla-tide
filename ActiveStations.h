@@ -45,12 +45,14 @@ public:
     Q_INVOKABLE void append(const QString& station);
     Q_INVOKABLE void remove(int row);
     Q_INVOKABLE void movetotop(int row);
+    Q_INVOKABLE void showpoints(int row);
 
     ~ActiveStations();
 
 private slots:
 
     void computeNextEvent();
+    void stationChanged(const QString&);
 
 private:
 

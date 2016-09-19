@@ -1,50 +1,56 @@
 #ifndef HARMONICS_CREATOR_H
 #define HARMONICS_CREATOR_H
 
-#include <QMap>
+#include <QHash>
 #include <QVector>
+#include "RunningSet.h"
+
+namespace Tide {
 
 class Complex;
 
 class HarmonicsCreator {
 public:
 
-    enum Mode {
-        Z0, M2, S2, N2, K2, K1, O1, P1, Q1, MF, MM, SSA, M4, MS4
-    };
+    typedef QHash<QString, Complex> Coefficients;
+    typedef QHashIterator<QString, Complex> CoefficientsIterator;
+    typedef QHash<QString, double> ModeSpeed;
+    typedef QHashIterator<QString, double> ModeSpeedIterator;
+    typedef QVector<double> LevelData;
 
-    typedef QMap<Mode, Complex> Coefficients;
-    typedef QMap<Mode, Complex>::const_iterator CoefficientsIterator;
-    typedef QList<Mode> ModeList;
-    typedef QList<double> TData;
-    typedef QList<Complex> KData;
-
-    typedef QVector<double> Amplitudes;
+    static void UpdateDB(int station_id);
+    static RunningSet* CreateConstituents(int station_id);
+    static Timestamp LastDataPoint(int station_id);
 
 
-    HarmonicsCreator(const TData&, unsigned t0);
 
-    const Amplitudes& levels(unsigned t0, unsigned t_delta, unsigned n);
 
-    double frequency(Mode m) const {return m_ModeFrequency[m];}
 
 private:
 
-    QMap<Mode, QString> m_ModeNames;
-
     HarmonicsCreator(const HarmonicsCreator&);
     HarmonicsCreator& operator=(const HarmonicsCreator&);
+    HarmonicsCreator();
 
-    unsigned m_T;
-    QMap<Mode, double> m_ModeFrequency;
-    ModeList m_Modes;
-    Amplitudes m_TData;
-    unsigned m_K0, m_KMax;
-    Coefficients m_Coefficients;
+
+    static HarmonicsCreator* instance();
+    Coefficients patch(int step, const LevelData& points);
+
+    void reset();
+    void append(int delta, int patchsize, int step, const Coefficients& patch);
+    Coefficients average() const;
+    ModeSpeed modes() {return m_W;}
+    void checkDBIntegrity();
+
     Complex m_I;
+    quint64 m_N;
+    quint64 m_D;
+    Coefficients m_ModeSums;
+    ModeSpeed m_W;
+
 
 };
 
-
+}
 
 #endif

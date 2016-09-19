@@ -32,6 +32,10 @@ Timestamp Timestamp::fromPosixTime(timestamp_rep_t t) {
 }
 
 
+Timestamp Timestamp::now() {
+    return Timestamp(QDateTime::currentMSecsSinceEpoch() / 1000);
+}
+
 
 // The beginning of time (1970-01-01 00:00:00Z) as a Julian date.
 const static double c_epochJD(2440587.5);
@@ -94,3 +98,6 @@ Timestamp (Tide::operator+) (const Timestamp& a, const Interval& b) {
     return Timestamp::fromPosixTime(a.posix() + b.seconds);
 }
 
+bool (Tide::operator!=) (const Timestamp& a, const Timestamp& b) {
+    return a.posix() != b.posix();
+}

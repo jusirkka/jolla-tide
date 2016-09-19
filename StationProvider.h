@@ -3,10 +3,26 @@
 
 #include <QAbstractListModel>
 #include <QtXml/QDomDocument>
-#include "StationFactory.h"
+#include "Factories.h"
+
 
 
 namespace Tide {
+
+class StationProvider;
+
+class StationUpdateHandler: public ClientProxy {
+public:
+    StationUpdateHandler(StationProvider* parent, const QString& key);
+    void whenFinished(const Status&);
+    ClientProxy* clone();
+
+private:
+
+    StationProvider* m_Parent;
+    QString m_Key;
+};
+
 
 
 
@@ -29,7 +45,7 @@ public:
 public:
 
     // create new provider model
-    StationProvider(QList<StationFactory*>& factories, QObject* parent = 0);
+    StationProvider(Factories* factories, QObject* parent = 0);
 
     //! Reimplemented from QAbstractItemModel
     int rowCount(const QModelIndex &parent) const Q_DECL_OVERRIDE;
@@ -49,19 +65,27 @@ public:
     QString filter() const;
     void setFilter(const QString& s);
 
+public slots:
+
+    void updateAvailable(const QString&);
 
 signals:
 
     void filterChanged(const QString& filter);
+    void stationChanged(const QString& key);
 
 
 private:
 
     QHash<QString, QDomDocument> m_AvailableStations;
     QList<QString> m_Visible;
-    QMap<QString, StationFactory*> m_Factories;
+    Factories* m_Factories;
     QString m_Filter;
+    Station m_Invalid;
+
 };
+
+
 
 }
 #endif

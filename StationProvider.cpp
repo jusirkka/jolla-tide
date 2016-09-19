@@ -1,28 +1,75 @@
 #include "StationProvider.h"
 #include <QDebug>
 
+
+Tide::StationUpdateHandler::StationUpdateHandler(StationProvider* parent, const QString& key):
+    m_Parent(parent),
+    m_Key(key)
+{}
+
+void Tide::StationUpdateHandler::whenFinished(const Status& s) {
+    qDebug() << "Tide::StationUpdateHandler::whenFinished" << s.code << s.xmlDetail;
+    if (s.code == Status::SUCCESS) {
+        emit m_Parent->stationChanged(m_Key);
+    }
+}
+
+Tide::ClientProxy* Tide::StationUpdateHandler::clone() {
+    return new StationUpdateHandler(m_Parent, m_Key);
+}
+
+
+
 Tide::StationProvider::~StationProvider() {}
 
 
-Tide::StationProvider::StationProvider(QList<StationFactory*>& factories, QObject* parent)
-    :QAbstractListModel(parent)
+Tide::StationProvider::StationProvider(Factories* factories, QObject* parent):
+    QAbstractListModel(parent),
+    m_Factories(factories),
+    m_Invalid()
 {
+    connect(m_Factories, SIGNAL(availableChanged(const QString&)), this, SLOT(updateAvailable(const QString&)));
+
     QString errMsg;
     int erow;
     int ecol;
-    foreach(StationFactory* factory, factories) {
-        m_Factories[factory->info().key] = factory;
+    for (int row = 0; row < m_Factories->rowCount(QModelIndex()); ++row) {
+        StationFactory* factory = m_Factories->instance(row);
         QString fkey = factory->info().key;
         const QHash<QString, StationInfo>& stations = factory->available();
-        QHash<QString, StationInfo>::const_iterator s = stations.constBegin();
-        for (; s != stations.constEnd(); ++s) {
+        if (stations.isEmpty()) {
+            m_Factories->update(row);
+            continue;
+        }
+        QHashIterator<QString, StationInfo> s(stations);
+        while (s.hasNext()) {
+            s.next();
             QDomDocument doc(s.key());
             doc.setContent(s.value().xmlDetail, &errMsg, &erow, &ecol);
+            if (!errMsg.isEmpty()) qDebug() << errMsg << erow << ecol;
             m_AvailableStations[QString("%1%2%3").arg(fkey).arg(QChar(30)).arg(s.key())] = doc;
         }
     }
 }
 
+
+void Tide::StationProvider::updateAvailable(const QString& key) {
+    QString errMsg;
+    int erow;
+    int ecol;
+    StationFactory* factory = m_Factories->instance(key);
+    if (!factory) return;
+    QString fkey = factory->info().key;
+    const QHash<QString, StationInfo>& stations = factory->available();
+    QHashIterator<QString, StationInfo> s(stations);
+    while (s.hasNext()) {
+        s.next();
+        QDomDocument doc(s.key());
+        doc.setContent(s.value().xmlDetail, &errMsg, &erow, &ecol);
+        if (!errMsg.isEmpty()) qDebug() << errMsg << erow << ecol;
+        m_AvailableStations[QString("%1%2%3").arg(fkey).arg(QChar(30)).arg(s.key())] = doc;
+    }
+}
 
 int Tide::StationProvider::rowCount(const QModelIndex&) const {
     return m_Visible.size();
@@ -94,7 +141,13 @@ QDomNode Tide::StationProvider::info(const QString& key) {
 
 const Tide::Station& Tide::StationProvider::station(const QString& key) {
     QStringList parts = key.split(QChar::fromLatin1(30));
-    return m_Factories[parts[0]]->instance(parts[1]);
+    StationFactory* factory = m_Factories->instance(parts[0]);
+    if (!factory) return m_Invalid;
+    const Station& s = factory->instance(parts[1]);
+    if (factory->updateNeeded(parts[1])) {
+        factory->update(parts[1], new StationUpdateHandler(this, key));
+    }
+    return s;
 }
 
 
