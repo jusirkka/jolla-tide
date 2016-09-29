@@ -1,4 +1,4 @@
-#ifndef WEB_FACTORY_H
+﻿#ifndef WEB_FACTORY_H
 #define WEB_FACTORY_H
 
 #include <QObject>
@@ -24,6 +24,7 @@ public:
     void update(const QString& key, ClientProxy* client);
     bool updateNeeded(const QString& key);
     void updateAvailable(ClientProxy* client);
+    void updateStationInfo(const QString& attr, const QString& key, ClientProxy* client);
 
     ~WebFactory();
 
@@ -32,11 +33,13 @@ protected:
 
 
     virtual QString stationUrl(const QString& key) = 0;
+    virtual QString locationUrl(const QString& key) = 0;
     virtual QString availUrl() = 0;
     virtual void handleDownloaded(ClientProxy* client, QNetworkReply*) = 0;
 
     void storeStation(const QString& key, ClientProxy* client, const QVector<Amplitude>& points, const Timestamp& epoch, const Interval& step);
     void storeAvail(ClientProxy* client, const QHash<QString, QString>& info, bool last=false);
+    void storeLocation(const QString& key, ClientProxy* client, const QString& location);
 
 protected slots:
 

@@ -16,6 +16,8 @@ public:
     static QHash<QString, QString> AllStations(const QString& provider = QString());
     static void Activate(const QString& station);
     static void Deactivate(const QString& station);
+    static int StationID(const QString& station);
+    static QString StationInfo(const QString& station, const QString& attr);
     static void UpdateStationInfo(const QString& provider, const QString& station, const QString& xmlinfo);
     static void Control(const QString& sql, const QVariantList& vars = QVariantList());
     static QList<QVector<QVariant>> Query(const QString& sql, const QVariantList& vars = QVariantList());

@@ -4,6 +4,8 @@
 #include <QVariant>
 #include <QSqlError>
 #include <QDebug>
+#include <QtXml/QDomDocument>
+
 
 #include "Database.h"
 
@@ -146,6 +148,40 @@ void Database::Deactivate(const QString& station) {
     instance()->close();
 }
 
+int Database::StationID(const QString& station) {
+    QSqlQuery r;
+    QStringList parts = station.split(QChar::fromLatin1(30));
+    r = instance()->prepare("select id from stations where fuid=? and suid=?");
+    r.bindValue(0, parts[0]);
+    r.bindValue(1, parts[1]);
+    exec_and_trace(r);
+    if (!r.next()) {
+        return 0;
+    }
+    return r.value(0).toInt();
+}
+
+QString Database::StationInfo(const QString& station, const QString& attr) {
+    QSqlQuery r;
+    QStringList parts = station.split(QChar::fromLatin1(30));
+    r = instance()->prepare("select xmlinfo from stations where fuid=? and suid=?");
+    r.bindValue(0, parts[0]);
+    r.bindValue(1, parts[1]);
+    exec_and_trace(r);
+    if (!r.next()) {
+        return QString();
+    }
+    QString errMsg;
+    int erow;
+    int ecol;
+    QDomDocument doc(station);
+    doc.setContent(r.value(0).toString(), &errMsg, &erow, &ecol);
+    if (!errMsg.isEmpty()) {
+        qDebug() << errMsg << erow << ecol;
+        return QString();
+    }
+    return doc.firstChild().attributes().namedItem(attr).nodeValue();
+}
 
 void Database::UpdateStationInfo(const QString& provider, const QString& station, const QString& xmlinfo) {
     QSqlQuery r;

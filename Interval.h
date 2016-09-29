@@ -51,7 +51,9 @@ public:
     Interval& operator=(const Interval& a) {seconds = a.seconds; return *this;}
     Interval(): seconds(0) {}
 
-    bool isnil(){return seconds == 0;}
+    bool isnil() {return seconds == 0;}
+    double hours() {return seconds / 3600.;}
+    double days() {return hours() / 24.;}
 
 private:
 

@@ -12,7 +12,6 @@ Tide::ActiveStations::ActiveStations(StationProvider* parent):
     QAbstractListModel(parent),
     m_Parent(parent)
 {
-    // TODO check that these are still valid: ie factory not removed
     QStringList actives = Database::ActiveStations();
     foreach (QString saved, actives) {
         append(saved);
@@ -170,9 +169,7 @@ void Tide::ActiveStations::movetotop(int row) {
 void Tide::ActiveStations::showpoints(int row) {
     QString key = m_Stations[row];
     const Station& s = m_Parent->station(key);
-    // TODO: only StationProvider should know about this
-    QStringList parts = key.split(QChar::fromLatin1(30));
-    PointsWindow* w = new PointsWindow(parts[0], parts[1], s);
+    PointsWindow* w = new PointsWindow(key, s);
     w->resize(800, 200);
     w->show();
 }

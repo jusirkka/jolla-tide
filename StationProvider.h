@@ -1,4 +1,4 @@
-#ifndef STATION_PROVIDER_H
+﻿#ifndef STATION_PROVIDER_H
 #define STATION_PROVIDER_H
 
 #include <QAbstractListModel>
@@ -22,8 +22,6 @@ private:
     StationProvider* m_Parent;
     QString m_Key;
 };
-
-
 
 
 class StationProvider: public QAbstractListModel
@@ -82,6 +80,8 @@ private:
     Factories* m_Factories;
     QString m_Filter;
     Station m_Invalid;
+
+    friend class StationUpdateHandler;
 
 };
 

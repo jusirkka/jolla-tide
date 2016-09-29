@@ -1,4 +1,4 @@
-#ifndef STATION_FACTORY_H
+﻿#ifndef STATION_FACTORY_H
 #define STATION_FACTORY_H
 
 #include <QtPlugin>
@@ -65,6 +65,7 @@ public:
     virtual void update(const QString& key, ClientProxy* client) = 0;
     virtual bool updateNeeded(const QString& key) = 0;
     virtual void updateAvailable(ClientProxy* client) = 0;
+    virtual void updateStationInfo(const QString& attr, const QString& key, ClientProxy* client) = 0;
 
     virtual ~StationFactory() {}
 

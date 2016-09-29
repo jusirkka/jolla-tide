@@ -1,4 +1,4 @@
-#include "WebFactory.h"
+﻿#include "WebFactory.h"
 #include "Database.h"
 #include "RunningSet.h"
 #include "HarmonicsCreator.h"
@@ -40,6 +40,10 @@ WebFactory::WebFactory(const QString& key, const QString& name, const QString& l
                       "id    integer primary key, "
                       "name  text not null, "
                       "omega real not null)");
+    Database::Control("create table if not exists locations ("
+                      "id         integer primary key, "
+                      "station_id integer not null, "
+                      "location   text not null)");
 
     QString errMsg;
     int erow;
@@ -75,7 +79,7 @@ const Station& WebFactory::instance(const QString& key) {
     QList<QVector<QVariant>> r;
     QVariantList vars;
     vars << QVariant::fromValue(key) << QVariant::fromValue(m_Info.key);
-    qDebug() << key << m_Info.key;
+    // qDebug() << key << m_Info.key;
     r = Database::Query("select id from stations where suid=? and fuid=?", vars);
     if (r.isEmpty()) {
         return m_Invalid;
@@ -88,6 +92,7 @@ const Station& WebFactory::instance(const QString& key) {
         return m_Invalid;
     }
 
+    // TODO: station location from xml info
     m_Loaded[key] = new Station(rset);
     m_LastDataPoint[key] = HarmonicsCreator::LastDataPoint(station_id);
 
@@ -145,6 +150,58 @@ void WebFactory::update(const QString& key, ClientProxy* client) {
     m_DLManager->get(QNetworkRequest(req));
 }
 
+void WebFactory::updateStationInfo(const QString& attr, const QString& key, ClientProxy* client) {
+    if (!m_Available.contains(key)) {
+        Status s(Status::ERROR, "<error status='Not available'/>");
+        client->whenFinished(s);
+        delete client;
+        return;
+    }
+    if (attr != "location") {
+        Status s(Status::ERROR, "<error status='Unsupported attribute'/>");
+        client->whenFinished(s);
+        delete client;
+        return;
+    }
+    // check database
+    QList<QVector<QVariant>> r;
+    QVariantList vars;
+    vars << QVariant::fromValue(key) << QVariant::fromValue(m_Info.key);
+    r = Database::Query("select l.location from locations l join stations s on l.station_id=s.id where s.suid=? and s.fuid=?", vars);
+    if (!r.isEmpty()) {
+        QString loc = r.first()[0].toString();
+        QString errMsg;
+        int erow;
+        int ecol;
+        QDomDocument doc(key);
+        doc.setContent(m_Available[key].xmlDetail, &errMsg, &erow, &ecol);
+        if (!errMsg.isEmpty()) {
+            qDebug() << errMsg << erow << ecol;
+            Status s(Status::ERROR, QString("<error status='Bad xml data: %1 %2 %3'/>").arg(errMsg).arg(erow).arg(ecol));
+            client->whenFinished(s);
+            delete client;
+            return;
+        }
+        doc.documentElement().setAttribute("location", loc);
+        m_Available[key].xmlDetail = doc.toString();
+        Status s(Status::SUCCESS, "<ok/>");
+        client->whenFinished(s);
+        delete client;
+        return;
+    }
+    QString req = locationUrl(key);
+    if (m_Pending.contains(req)) {
+        Status s(Status::PENDING, "<ok status='started'/>");
+        client->whenFinished(s);
+        delete client;
+        return;
+    }
+    m_Pending[req] = client;
+
+    m_DLManager->get(QNetworkRequest(req));
+}
+
+
 void WebFactory::updateAvailable(ClientProxy* client) {
     QString req = availUrl();
 
@@ -163,7 +220,7 @@ void WebFactory::updateAvailable(ClientProxy* client) {
 void WebFactory::downloadReady(QNetworkReply* reply) {
     QString req = reply->request().url().toString();
     if (!m_Pending.contains(req)) {
-        qDebug() << "FATAL: request " << req << "not found in pending reuests!";
+        qDebug() << "FATAL: request " << req << "not found in pending requests!";
         reply->deleteLater();
         return;
     }
@@ -181,11 +238,9 @@ void WebFactory::downloadReady(QNetworkReply* reply) {
 
 void WebFactory::storeStation(const QString& key, ClientProxy* client, const QVector<Amplitude>& points, const Timestamp& epoch, const Interval& step) {
 
-    qDebug() << "WebFactory::storeStation start";
     QList<QVector<QVariant>> r;
     QVariantList vars;
     vars << QVariant::fromValue(key) << QVariant::fromValue(m_Info.key);
-    qDebug() << key << m_Info.key;
     r = Database::Query("select id from stations where suid=? and fuid=?", vars);
     if (r.isEmpty()) {
         Status s(Status::ERROR, QString("<error reason='%1 not found'/>").arg(key));
@@ -220,7 +275,6 @@ void WebFactory::storeStation(const QString& key, ClientProxy* client, const QVe
         return;
     }
 
-    qDebug() << "WebFactory::storeStation inserting start";
     int epoch_id = r.first()[0].toInt();
     Database::Transaction();
     for (int i = 0; i < points.size(); ++i) {
@@ -229,12 +283,9 @@ void WebFactory::storeStation(const QString& key, ClientProxy* client, const QVe
         Database::Control("insert into readings (epoch_id, reading) values (?, ?)", vars);
     }
     Database::Commit();
-    qDebug() << "WebFactory::storeStation inserting end";
 
 
-    qDebug() << "WebFactory::storeStation updatedb start";
     HarmonicsCreator::UpdateDB(station_id);
-    qDebug() << "WebFactory::storeStation updatedb end";
     Status s(Status::SUCCESS, QString("<ok/>"));
     client->whenFinished(s);
     delete client;
@@ -259,6 +310,65 @@ void WebFactory::storeAvail(ClientProxy* client, const QHash<QString, QString>& 
     client->whenFinished(s);
     delete client;
 }
+
+void WebFactory::storeLocation(const QString& key, ClientProxy* client, const QString& location) {
+    QList<QVector<QVariant>> r;
+    QVariantList vars;
+    vars << QVariant::fromValue(key) << QVariant::fromValue(m_Info.key);
+    r = Database::Query("select id from stations where suid=? and fuid=?", vars);
+    if (r.isEmpty()) {
+        Status s(Status::ERROR, QString("<error reason='%1 not found'/>").arg(key));
+        client->whenFinished(s);
+        delete client;
+        return;
+    }
+    int station_id = r.first()[0].toInt();
+
+    vars.clear();
+    vars << QVariant::fromValue(station_id);
+    r = Database::Query("select id from locations where station_id=?", vars);
+    vars.clear();
+    vars << QVariant::fromValue(location) << QVariant::fromValue(station_id);
+    if (r.isEmpty()) {
+        Database::Control("insert into locations (location, station_id) values (?, ?)", vars);
+    } else {
+        Database::Control("update locations set location=? where station_id=?", vars);
+    }
+
+    vars.clear();
+    vars << QVariant::fromValue(station_id);
+    r = Database::Query("select xmlinfo from stations where id=?", vars);
+    if (r.size() != 1) {
+        Status s(Status::ERROR, QString("<error reason='Database error'/>"));
+        client->whenFinished(s);
+        delete client;
+        return;
+    }
+
+    QString errMsg;
+    int erow;
+    int ecol;
+    QDomDocument doc(key);
+    doc.setContent(r.first()[0].toString(), &errMsg, &erow, &ecol);
+    if (!errMsg.isEmpty()) {
+        qDebug() << errMsg << erow << ecol;
+        Status s(Status::ERROR, QString("<error status='Bad xml data: %1 %2 %3'/>").arg(errMsg).arg(erow).arg(ecol));
+        client->whenFinished(s);
+        delete client;
+        return;
+    }
+    doc.documentElement().setAttribute("location", location);
+    m_Available[key].xmlDetail = doc.toString();
+    vars.clear();
+    vars << QVariant::fromValue(m_Available[key].xmlDetail) << QVariant::fromValue(station_id);
+    Database::Control("update stations set xmlinfo=? where id=?", vars);
+
+    Status s(Status::SUCCESS, "<ok/>");
+    client->whenFinished(s);
+    delete client;
+    return;
+}
+
 
 WebFactory::~WebFactory() {}
 

@@ -1,4 +1,4 @@
-// $Id: Coordinates.hh 4327 2012-02-18 22:55:54Z flaterco $
+﻿// $Id: Coordinates.hh 4327 2012-02-18 22:55:54Z flaterco $
 
 /*  Coordinates:  Degrees latitude and longitude.
 
@@ -30,14 +30,27 @@ class Coordinates {
 public:
 
     static Coordinates fromWGS84LatLong(double lat, double lng);
+    static Coordinates parseISO6709(const QString& loc);
 
     Coordinates(const Coordinates& a): m_Latitude(a.m_Latitude), m_Longitude(a.m_Longitude), m_Datum(a.m_Datum) {}
     Coordinates& operator=(const Coordinates& a) {m_Latitude = a.m_Latitude; m_Longitude = a.m_Longitude; m_Datum = a.m_Datum; return *this;}
     Coordinates(): m_Latitude(0), m_Longitude(0), m_Datum("Invalid") {}
 
+    QString print();
+    QString toISO6709();
     double latitude() const {return m_Latitude;}
     double longitude() const {return m_Longitude;}
     const QString& datum() const {return m_Datum;}
+
+    bool northern() const {return m_Latitude >= 0;}
+    bool eastern() const {return m_Longitude >= 0;}
+
+    ushort degreesLat() const;
+    ushort degreesLng() const;
+    ushort minutesLat() const;
+    ushort minutesLng() const;
+    ushort secondsLat() const;
+    ushort secondsLng() const;
 
 
 private:

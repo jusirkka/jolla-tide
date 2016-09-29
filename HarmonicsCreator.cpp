@@ -245,11 +245,11 @@ HarmonicsCreator::Coefficients HarmonicsCreator::average() const {
         k.next();
         QString m = k.value();
         double w = Speed::fromRadiansPerSecond(m_W[m]).dph();
-        double a = ksum[k.key()].mod() / kcount[k.key()] / m_N * 2;
-        if (a < 0.05) {
-            qDebug() << "skipping " << m <<  w << ", Amplitude = " << a;
-            continue;
-        }
+//        double a = ksum[k.key()].mod() / kcount[k.key()] / m_N * 2;
+//        if (a < 0.05) {
+//            qDebug() << "skipping " << m <<  w << ", Amplitude = " << a;
+//            continue;
+//        }
         r[m] = ksum[k.key()] / kcount[k.key()] / m_N * 2;
         qDebug() << "Mode" << m << w << "Amplitude = " << r[m].mod() << "average of" << kcount[k.key()] << "modes";
     }

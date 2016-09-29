@@ -1,4 +1,4 @@
-#include "TideForecast.h"
+﻿#include "TideForecast.h"
 #include <QDomDocument>
 #include <QRegularExpression>
 #include <QNetworkReply>
@@ -25,6 +25,27 @@ QString TideForecast::stationUrl(const QString& key) {
     return url;
 }
 
+QString TideForecast::locationUrl(const QString& key) {
+    if (!m_Available.contains(key)) return QString();
+    QString errMsg;
+    int erow;
+    int ecol;
+    QDomDocument doc(key);
+    doc.setContent(m_Available[key].xmlDetail, &errMsg, &erow, &ecol);
+    if (!errMsg.isEmpty()) {
+        qDebug() << errMsg << erow << ecol;
+        return QString();
+    }
+    QString city = doc.documentElement().attribute("name");
+    if (city.isEmpty()) return QString();
+    QString country = doc.documentElement().attribute("country");
+    if (country.isEmpty()) return QString();
+    QString url = QString("http://maps.googleapis.com/maps/api/geocode/xml?address=%1,%2").arg(city).arg(country);
+    m_KnownLocations[url] = key;
+    return url;
+}
+
+
 QString TideForecast::availUrl() {
     return m_AvailUrl;
 }
@@ -36,9 +57,11 @@ QString TideForecast::countryUrl(int country_id) {
 
 void TideForecast::handleDownloaded(ClientProxy* client, QNetworkReply* reply) {
     QString req = reply->request().url().toString();
-    qDebug() << req;
+    qDebug() << "handleDownloaded: " << req;
     if (m_KnownStations.contains(req)) {
         handleStationUpdate(m_KnownStations[req], client, reply);
+    } else if (m_KnownLocations.contains(req)) {
+        handleLocationUpdate(m_KnownLocations[req], client, reply);
     } else if (req == availUrl()) {
         handleFirstAvailPage(client, reply);
     } else if (m_PendingCountries.contains(req)) {
@@ -101,6 +124,23 @@ void TideForecast::handleStationUpdate(const QString &key, ClientProxy *client, 
     storeStation(key, client, points, stamp, step);
 }
 
+void TideForecast::handleLocationUpdate(const QString &key, ClientProxy *client, QNetworkReply* reply) {
+    QDomDocument page;
+    page.setContent(reply->readAll());
+    QDomElement root = page.firstChildElement("GeocodeResponse");
+    QString status = root.firstChildElement("status").text();
+    if (status.toLower().trimmed() != "ok") {
+        Status s(Status::ERROR, QString("<error status='request failed: %1'/>").arg(status));
+        client->whenFinished(s);
+        delete client;
+        return;
+    }
+    QDomElement loc = root.firstChildElement("result").firstChildElement("geometry").firstChildElement("location");
+    double lng = loc.firstChildElement("lng").text().toDouble();
+    double lat = loc.firstChildElement("lat").text().toDouble();
+    storeLocation(key, client, Coordinates::fromWGS84LatLong(lat, lng).toISO6709());
+}
+
 void TideForecast::handleFirstAvailPage(ClientProxy* client, QNetworkReply* reply) {
     // FIXME: remove after testing
     QList<int> testing;
@@ -145,7 +185,7 @@ void TideForecast::handleSecondAvailPage(const QString& url, ClientProxy* client
     xmlXPathObjectPtr xpathObj = xmlXPathEvalExpression((const xmlChar *) "//select[@id='location_filename_part']/option[@value]", xpathCtx);
     if (!xpathObj->nodesetval) {
         QString err("<error status='no stations found'/>"); // TODO: better error info
-        Status s = m_PendingCountries.isEmpty() ? Status(Status::SUCCESS, err) : Status(Status::PENDING, err);
+        Status s = m_PendingCountries.isEmpty() ? Status(Status::ERROR, err) : Status(Status::PENDING, err);
         client->whenFinished(s);
         delete client;
         return;
@@ -154,6 +194,7 @@ void TideForecast::handleSecondAvailPage(const QString& url, ClientProxy* client
     for (int i = 0; i< xpathObj->nodesetval->nodeNr; ++i) {
         QString key = QString((const char*) xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *) "value"));
         QString name = QString((const char*) xmlNodeGetContent(xpathObj->nodesetval->nodeTab[i]));
+        // TODO: check location from db
         QString xml = QString("<station type='Running' country='%1' name='%2' />").arg(country).arg(name);
         info[key] = xml;
     }

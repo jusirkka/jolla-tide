@@ -1,4 +1,4 @@
-#include "StationProvider.h"
+﻿#include "StationProvider.h"
 #include <QDebug>
 
 
@@ -11,6 +11,10 @@ void Tide::StationUpdateHandler::whenFinished(const Status& s) {
     qDebug() << "Tide::StationUpdateHandler::whenFinished" << s.code << s.xmlDetail;
     if (s.code == Status::SUCCESS) {
         emit m_Parent->stationChanged(m_Key);
+        QModelIndex c = m_Parent->index(m_Parent->m_Visible.indexOf(m_Key));
+        if (c.isValid()) {
+            emit m_Parent->dataChanged(c, c);
+        }
     }
 }
 
@@ -112,8 +116,7 @@ QVariant Tide::StationProvider::data(const QModelIndex& index, int role) const {
     if (role == LocationRole) {
         // Mount Everest +27.5916+086.5640+8850CRSWGS_84/
         QString location = stationNode.attributes().namedItem("location").nodeValue();
-        // TODO: transform
-        return QVariant::fromValue(location);
+        return QVariant::fromValue(Coordinates::parseISO6709(location).print());
     }
 
     if (role == TypeRole) {
@@ -159,6 +162,8 @@ void Tide::StationProvider::setFilter(const QString& fter) {
 
     m_Visible.clear();
 
+    QStringList locationUpdate;
+
     if (m_Filter.length() > 2) {
         QStringList attrs;
         attrs << "name" << "county" << "country" << "region" << "location";
@@ -174,11 +179,23 @@ void Tide::StationProvider::setFilter(const QString& fter) {
                 }
                 if (detail.nodeValue().contains(m_Filter, Qt::CaseInsensitive)) {
                     m_Visible.append(st.key());
+                    QString loc = stationNode.attributes().namedItem("location").nodeValue();
+                    if (loc.isEmpty()) {
+                        locationUpdate.append(st.key());
+                    }
                     break;
                 }
             }
         }
     }
+
+    // check that we have locations
+    foreach (QString key, locationUpdate) {
+        QStringList parts = key.split(QChar::fromLatin1(30));
+        StationFactory* factory = m_Factories->instance(parts[0]);
+        if (factory) factory->updateStationInfo("location", parts[1], new StationUpdateHandler(this, key));
+    }
+
     endResetModel();
     emit filterChanged(m_Filter);
 }
