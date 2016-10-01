@@ -251,7 +251,7 @@ HarmonicsCreator::Coefficients HarmonicsCreator::average() const {
 //            continue;
 //        }
         r[m] = ksum[k.key()] / kcount[k.key()] / m_N * 2;
-        qDebug() << "Mode" << m << w << "Amplitude = " << r[m].mod() << "average of" << kcount[k.key()] << "modes";
+        // qDebug() << "Mode" << m << w << "Amplitude = " << r[m].mod() << "average of" << kcount[k.key()] << "modes";
     }
 
     return r;

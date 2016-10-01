@@ -2,8 +2,11 @@
 - sun/moon events
 - tide level in event description
 - location in active stations view
-- translations / qstrid
 - event images
 - provider logos in about page
 - bug: seg fault in events view
 - bug: locations not updated in station select view
+- handle N/A locations: do not update xmlinfo with location=N/A
+- store station data as DOM outside db
+- bug: "Epoch already present"
+- bug: inconsistent max/min computation

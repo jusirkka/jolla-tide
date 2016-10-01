@@ -1,10 +1,11 @@
-﻿#include <QApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QtPlugin>
 #include <QPluginLoader>
 #include <QQmlContext>
 #include <QtQml>
 #include <QDebug>
+#include <QTranslator>
 
 #include "StationProvider.h"
 #include "TideForecast.h"
@@ -18,6 +19,10 @@ int main(int argc, char *argv[])
 {
     Q_INIT_RESOURCE(resources);
     QApplication app(argc, argv);
+
+    QTranslator translator;
+    qDebug() << translator.load(":/jolla-tide_en");
+    app.installTranslator(&translator);
 
     QList<Tide::StationFactory*> factories;
     foreach (QObject* plugin, QPluginLoader::staticInstances()) {

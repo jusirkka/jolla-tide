@@ -70,71 +70,96 @@ bool TideEvent::isMinCurrentEvent () const {
 
 
 QString TideEvent::description () const {
-    // TODO: qstrid
     switch (type) {
     case TideEvent::max:
         if (isCurrent()) {
             if (level.value >= 0.0) {
-                return "Max Flood";
+                //% "Max Flood"
+                return qtTrId("tide-event-max-flood");
             }
-            return "Min Ebb";
+            //% "Min Ebb"
+            return qtTrId("tide-event-min-ebb");
         }
-        return "High Tide";
+        //% "High Tide"
+        return qtTrId("tide-event-high-tide");
     case TideEvent::min:
         if (isCurrent()) {
             if (level.value <= 0.0) {
-                return "Max Ebb";
+                //% "Max Ebb"
+                return qtTrId("tide-event-max-ebb");
             }
-            return "Min Flood";
+            //% "Min Flood"
+            return qtTrId("tide-event-min-flood");
         }
-        return "Low Tide";
+        //% "Low Tide"
+        return qtTrId("tide-event-low-tide");
     case TideEvent::slackrise:
-        return "Slack, Flood Begins";
+        //% "Slack, Flood Begins"
+        return qtTrId("tide-event-slack-flodd-begins");
     case TideEvent::slackfall:
-        return "Slack, Ebb Begins";
+        //% "Slack, Ebb Begins"
+        return qtTrId("tide-event-slack-ebb-begins");
     case TideEvent::markrise:
         if (isCurrent()) {
             if (level.value < 0.0) {
-                return "Mark, Ebb Decreasing";
+                //% "Mark, Ebb Decreasing"
+                return qtTrId("tide-event-mark-ebb-decreasing");
             }
             if (level.value > 0.0) {
-                return "Mark, Flood Increasing";
+                //% "Mark, Flood Increasing"
+                return qtTrId("tide-event-mark-flood-increasing");
             }
-            return "Mark, Flood Begins";
+            //% "Mark, Flood Begins"
+            return qtTrId("tide-event-mark-flood-begins");
         }
-        return "Mark Rising";
+        //% "Mark Rising"
+        return qtTrId("tide-event-mark-rising");
     case TideEvent::markfall:
         if (isCurrent()) {
             if (level.value < 0.0) {
-                return "Mark, Ebb Increasing";
+                //% "Mark, Ebb Increasing"
+                return qtTrId("tide-event-mark-ebb-increasing");
             }
             if (level.value > 0.0) {
-                return "Mark, Flood Decreasing";
+                //% "Mark, Flood Decreasing"
+                return qtTrId("tide-event-mark-flood-decreasing");
             }
-            return "Mark, Ebb Begins";
+            //% "Mark, Ebb Begins"
+            return qtTrId("tide-event-mark-ebb-begins");
         }
-        return "Mark Falling";
+        //% "Mark Falling"
+        return qtTrId("tide-event-mark-falling");
     case TideEvent::sunrise:
-        return "Sunrise";
+        //% "Sunrise"
+        return qtTrId("tide-event-sunrise");
     case TideEvent::sunset:
-        return "Sunset";
+        //% "Sunset"
+        return qtTrId("tide-event-sunrise");
     case TideEvent::moonrise:
-        return "Moonrise";
+        //% "Moonrise"
+        return qtTrId("tide-event-moonrise");
     case TideEvent::moonset:
-        return "Moonset";
+        //% "Moonset"
+        return qtTrId("tide-event-moonset");
     case TideEvent::newmoon:
-        return "New Moon";
+        //% "New Moon"
+        return qtTrId("tide-event-newmoon");
     case TideEvent::firstquartermoon:
-        return "First Quarter Moon";
+        //% "First Quarter Moon"
+        return qtTrId("tide-event-first-quarter-moon");
     case TideEvent::fullmoon:
-        return "Full Moon";
+        //% "Full Moon"
+        return qtTrId("tide-event-full-moon");
     case TideEvent::lastquartermoon:
-        return "Last Quarter Moon";
-    case TideEvent::rawreading:
+        //% "Last Quarter Moon"
+        return qtTrId("tide-event-last-quarter-moon");
     case TideEvent::invalid:
-        return "Cannot find any events";
+        //% "Cannot find any events"
+        return qtTrId("tide-event-invalid");
+    case TideEvent::rawreading:
     default:
-        return "Raw reading";
+        //% "Raw reading"
+        return qtTrId("tide-event-raw-reading");
     }
 }
 
