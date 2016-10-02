@@ -4,9 +4,9 @@
 - location in active stations view
 - event images
 - provider logos in about page
-- bug: seg fault in events view
+- CANNOT REPRODUCE!?? bug: seg fault in events view
 - bug: locations not updated in station select view
-- handle N/A locations: do not update xmlinfo with location=N/A
+- IN PROGRESS handle N/A locations: do not update xmlinfo with location=N/A
 - store station data as DOM outside db
 - bug: "Epoch already present"
 - bug: inconsistent max/min computation

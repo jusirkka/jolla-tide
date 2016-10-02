@@ -1,4 +1,4 @@
-﻿#ifndef WEB_FACTORY_H
+#ifndef WEB_FACTORY_H
 #define WEB_FACTORY_H
 
 #include <QObject>
@@ -48,7 +48,6 @@ protected slots:
 protected:
 
     StationFactoryInfo m_Info;
-    Status m_Status;
     QHash<QString, StationInfo> m_Available;
     QHash<QString, Station*> m_Loaded;
     QHash<QString, Timestamp> m_LastDataPoint;

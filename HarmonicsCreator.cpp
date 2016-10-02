@@ -244,12 +244,12 @@ HarmonicsCreator::Coefficients HarmonicsCreator::average() const {
     while (k.hasNext()) {
         k.next();
         QString m = k.value();
-        double w = Speed::fromRadiansPerSecond(m_W[m]).dph();
-//        double a = ksum[k.key()].mod() / kcount[k.key()] / m_N * 2;
-//        if (a < 0.05) {
-//            qDebug() << "skipping " << m <<  w << ", Amplitude = " << a;
-//            continue;
-//        }
+        // double w = Speed::fromRadiansPerSecond(m_W[m]).dph();
+        double a = ksum[k.key()].mod() / kcount[k.key()] / m_N * 2;
+        if (a < 0.02) {
+            // qDebug() << "skipping " << m <<  w << ", Amplitude = " << a;
+            continue;
+        }
         r[m] = ksum[k.key()] / kcount[k.key()] / m_N * 2;
         // qDebug() << "Mode" << m << w << "Amplitude = " << r[m].mod() << "average of" << kcount[k.key()] << "modes";
     }
@@ -420,7 +420,7 @@ void HarmonicsCreator::UpdateDB(int station_id) {
     }
     // 1. read raw data
     r = Database::Query("select id, timedelta from epochs where station_id=?", vars);
-    qDebug() << r.size() << vars[0].toInt() << station_id;
+    // qDebug() << r.size() << vars[0].toInt() << station_id;
     foreach (QVector<QVariant> row, r) {
         int epoch_id = row[0].toInt();
         if (constituents.contains(epoch_id)) continue;

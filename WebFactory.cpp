@@ -1,4 +1,4 @@
-﻿#include "WebFactory.h"
+#include "WebFactory.h"
 #include "Database.h"
 #include "RunningSet.h"
 #include "HarmonicsCreator.h"
@@ -76,6 +76,25 @@ const Station& WebFactory::instance(const QString& key) {
     if (m_Loaded.contains(key)) {
         return *m_Loaded[key];
     }
+
+    if (!m_Available.contains(key)) {
+        return m_Invalid;
+    }
+
+    QString errMsg;
+    int erow;
+    int ecol;
+    QDomDocument doc(key);
+    doc.setContent(m_Available[key].xmlDetail, &errMsg, &erow, &ecol);
+    if (!errMsg.isEmpty()) {
+        qDebug() << errMsg << erow << ecol;
+        return m_Invalid;
+    }
+
+    QString name = doc.documentElement().attribute("name");
+    QString loc = doc.documentElement().attribute("location", "N/A");
+    qDebug() << name << loc;
+
     QList<QVector<QVariant>> r;
     QVariantList vars;
     vars << QVariant::fromValue(key) << QVariant::fromValue(m_Info.key);
@@ -92,8 +111,7 @@ const Station& WebFactory::instance(const QString& key) {
         return m_Invalid;
     }
 
-    // TODO: station location from xml info
-    m_Loaded[key] = new Station(rset);
+    m_Loaded[key] = new Station(rset, name, Coordinates::parseISO6709(loc));
     m_LastDataPoint[key] = HarmonicsCreator::LastDataPoint(station_id);
 
     return *m_Loaded[key];

@@ -1,4 +1,4 @@
-﻿// $Id: Coordinates.cc 2641 2007-09-02 21:31:02Z flaterco $
+// $Id: Coordinates.cc 2641 2007-09-02 21:31:02Z flaterco $
 
 /*  Coordinates   Degrees latitude and longitude.
 
@@ -95,7 +95,9 @@ ushort Coordinates::secondsLng() const {
 }
 
 QString Coordinates::print() {
-    // 50°40'46"N 95°48'26"W
+    if (m_Datum == "Invalid") return "N/A";
+
+    // 50°40'46"N 024°48'26"E
     QString s("%1°%2'%3\"%4");
     QString r;
     QChar z('0');
@@ -109,8 +111,10 @@ QString Coordinates::print() {
 }
 
 QString Coordinates::toISO6709() {
+    if (m_Datum == "Invalid") return "N/A";
     // +27.5916+086.5640CRSWGS_84/
+    QChar z('0');
     QString s("%1%2%3%4CRS%5/"); // sign lat, abs lat, sign lng, abs lng, datum
-    return s.arg(m_Latitude < 0 ? '-' : '+').arg(::fabs(m_Latitude), 0, 'f')
-            .arg(m_Longitude < 0 ? '-' : '+').arg(::fabs(m_Longitude), 0, 'f').arg(m_Datum);
+    return s.arg(m_Latitude < 0 ? '-' : '+').arg(::fabs(m_Latitude), 0, 'f', 2, z)
+            .arg(m_Longitude < 0 ? '-' : '+').arg(::fabs(m_Longitude), 0, 'f', 3, z).arg(m_Datum);
 }

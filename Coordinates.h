@@ -1,4 +1,4 @@
-﻿// $Id: Coordinates.hh 4327 2012-02-18 22:55:54Z flaterco $
+// $Id: Coordinates.hh 4327 2012-02-18 22:55:54Z flaterco $
 
 /*  Coordinates:  Degrees latitude and longitude.
 

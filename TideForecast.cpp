@@ -1,4 +1,5 @@
-﻿#include "TideForecast.h"
+#include "TideForecast.h"
+#include "Database.h"
 #include <QDomDocument>
 #include <QRegularExpression>
 #include <QNetworkReply>
@@ -153,17 +154,24 @@ void TideForecast::handleFirstAvailPage(ClientProxy* client, QNetworkReply* repl
     if (!xpathObj->nodesetval) {
         Status s(Status::ERROR, QString("<error status='no countries found'/>"));
         client->whenFinished(s);
+        xmlXPathFreeObject(xpathObj);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
         delete client;
         return;
     }
     m_Available.clear();
     for (int i = 0; i< xpathObj->nodesetval->nodeNr; ++i) {
-        int country_id = QString((const char*) xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *) "value")).toInt();
+        xmlChar* prop = xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *) "value");
+        int country_id = QString((const char*) prop).toInt();
+        xmlFree(prop);
         if (!testing.contains(country_id)) {
             continue;
         }
         QString url = countryUrl(country_id);
-        QString name = QString((const char*) xmlNodeGetContent(xpathObj->nodesetval->nodeTab[i]));
+        xmlChar* nodeval = xmlNodeGetContent(xpathObj->nodesetval->nodeTab[i]);
+        QString name = QString((const char*) nodeval);
+        xmlFree(nodeval);
         m_Pending[url] = client->clone();
         m_PendingCountries[url] = name;
         m_DLManager->get(QNetworkRequest(url));
@@ -171,6 +179,9 @@ void TideForecast::handleFirstAvailPage(ClientProxy* client, QNetworkReply* repl
 
     Status s(Status::PENDING, QString("<ok/>"));
     client->whenFinished(s);
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+    xmlFreeDoc(doc);
     delete client;
 }
 
@@ -179,24 +190,40 @@ void TideForecast::handleSecondAvailPage(const QString& url, ClientProxy* client
     QString country = m_PendingCountries[url];
     m_PendingCountries.remove(url);
     QByteArray page = reply->readAll();
-    // TODO: mem mgmt
     xmlDocPtr doc = htmlReadMemory(page.constData(), page.size(), "", NULL, HTML_PARSE_NOWARNING | HTML_PARSE_NOERROR);
     xmlXPathContextPtr xpathCtx = xmlXPathNewContext(doc);
     xmlXPathObjectPtr xpathObj = xmlXPathEvalExpression((const xmlChar *) "//select[@id='location_filename_part']/option[@value]", xpathCtx);
     if (!xpathObj->nodesetval) {
-        QString err("<error status='no stations found'/>"); // TODO: better error info
+        QString err("<error status='no stations found'/>");
         Status s = m_PendingCountries.isEmpty() ? Status(Status::ERROR, err) : Status(Status::PENDING, err);
         client->whenFinished(s);
+        xmlXPathFreeObject(xpathObj);
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
         delete client;
         return;
     }
     QHash<QString, QString> info;
     for (int i = 0; i< xpathObj->nodesetval->nodeNr; ++i) {
-        QString key = QString((const char*) xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *) "value"));
-        QString name = QString((const char*) xmlNodeGetContent(xpathObj->nodesetval->nodeTab[i]));
-        // TODO: check location from db
+        xmlChar* prop = xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *) "value");
+        QString key = QString((const char*) prop);
+        xmlFree(prop);
+        xmlChar* nodeval = xmlNodeGetContent(xpathObj->nodesetval->nodeTab[i]);
+        QString name = QString((const char*) nodeval);
+        xmlFree(nodeval);
         QString xml = QString("<station type='Running' country='%1' name='%2' />").arg(country).arg(name);
+        // Check location from db
+        QVariantList vars;
+        vars << QVariant::fromValue(key) << QVariant::fromValue(m_Info.key);
+        QList<QVector<QVariant>> r = Database::Query("select l.location from locations l join stations s on l.station_id=s.id where s.suid=? and s.fuid=?", vars);
+        if (!r.isEmpty()) {
+            QString loc = r.first()[0].toString();
+            xml = QString("<station type='Running' country='%1' name='%2' location='%3'/>").arg(country).arg(name).arg(loc);
+        }
         info[key] = xml;
     }
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+    xmlFreeDoc(doc);
     storeAvail(client, info, m_PendingCountries.isEmpty());
 }
