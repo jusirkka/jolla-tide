@@ -14,10 +14,7 @@ using namespace Tide;
 WebFactory::WebFactory(const QString& key, const QString& name, const QString& logo,
                        const QString& desc, const QString& url):
     QObject(),
-    m_Info(key, QString("<factory name='%1' logo='%2' about='%3' home='%4'/>")
-           .arg(name).arg(logo).arg(desc).arg(url)),
     m_Invalid(),
-    m_Doc(key),
     m_DLManager(new QNetworkAccessManager(this))
 {
     Database::Control("create table if not exists epochs ("
@@ -45,14 +42,14 @@ WebFactory::WebFactory(const QString& key, const QString& name, const QString& l
                       "station_id integer not null, "
                       "location   text not null)");
 
-    QString errMsg;
-    int erow;
-    int ecol;
-    // qDebug() << m_Info.xmlDetail;
-    m_Doc.setContent(m_Info.xmlDetail, &errMsg, &erow, &ecol);
-    if (!errMsg.isEmpty()) {
-        qDebug() << "WebFactory: xml parse error" << errMsg << "row = " << erow << "col = " << ecol;
-    }
+    QDomDocument doc(name);
+    doc.setContent(QString("<factory/>"));
+    QDomElement f = doc.documentElement();
+    f.setAttribute("name", name);
+    f.setAttribute("logo", logo);
+    f.setAttribute("about", desc);
+    f.setAttribute("home", url);
+    m_Info = StationFactoryInfo(key, doc);
 
     connect(m_DLManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(downloadReady(QNetworkReply*)));
 }
@@ -81,15 +78,7 @@ const Station& WebFactory::instance(const QString& key) {
         return m_Invalid;
     }
 
-    QString errMsg;
-    int erow;
-    int ecol;
-    QDomDocument doc(key);
-    doc.setContent(m_Available[key].xmlDetail, &errMsg, &erow, &ecol);
-    if (!errMsg.isEmpty()) {
-        qDebug() << errMsg << erow << ecol;
-        return m_Invalid;
-    }
+    QDomDocument doc = m_Available[key].info;
 
     QString name = doc.documentElement().attribute("name");
     QString loc = doc.documentElement().attribute("location", "N/A");
@@ -188,20 +177,7 @@ void WebFactory::updateStationInfo(const QString& attr, const QString& key, Clie
     r = Database::Query("select l.location from locations l join stations s on l.station_id=s.id where s.suid=? and s.fuid=?", vars);
     if (!r.isEmpty()) {
         QString loc = r.first()[0].toString();
-        QString errMsg;
-        int erow;
-        int ecol;
-        QDomDocument doc(key);
-        doc.setContent(m_Available[key].xmlDetail, &errMsg, &erow, &ecol);
-        if (!errMsg.isEmpty()) {
-            qDebug() << errMsg << erow << ecol;
-            Status s(Status::ERROR, QString("<error status='Bad xml data: %1 %2 %3'/>").arg(errMsg).arg(erow).arg(ecol));
-            client->whenFinished(s);
-            delete client;
-            return;
-        }
-        doc.documentElement().setAttribute("location", loc);
-        m_Available[key].xmlDetail = doc.toString();
+        m_Available[key].info.documentElement().setAttribute("location", loc);
         Status s(Status::SUCCESS, "<ok/>");
         client->whenFinished(s);
         delete client;
@@ -353,32 +329,9 @@ void WebFactory::storeLocation(const QString& key, ClientProxy* client, const QS
         Database::Control("update locations set location=? where station_id=?", vars);
     }
 
+    m_Available[key].info.documentElement().setAttribute("location", location);
     vars.clear();
-    vars << QVariant::fromValue(station_id);
-    r = Database::Query("select xmlinfo from stations where id=?", vars);
-    if (r.size() != 1) {
-        Status s(Status::ERROR, QString("<error reason='Database error'/>"));
-        client->whenFinished(s);
-        delete client;
-        return;
-    }
-
-    QString errMsg;
-    int erow;
-    int ecol;
-    QDomDocument doc(key);
-    doc.setContent(r.first()[0].toString(), &errMsg, &erow, &ecol);
-    if (!errMsg.isEmpty()) {
-        qDebug() << errMsg << erow << ecol;
-        Status s(Status::ERROR, QString("<error status='Bad xml data: %1 %2 %3'/>").arg(errMsg).arg(erow).arg(ecol));
-        client->whenFinished(s);
-        delete client;
-        return;
-    }
-    doc.documentElement().setAttribute("location", location);
-    m_Available[key].xmlDetail = doc.toString();
-    vars.clear();
-    vars << QVariant::fromValue(m_Available[key].xmlDetail) << QVariant::fromValue(station_id);
+    vars << QVariant::fromValue(m_Available[key].info.toString()) << QVariant::fromValue(station_id);
     Database::Control("update stations set xmlinfo=? where id=?", vars);
 
     Status s(Status::SUCCESS, "<ok/>");

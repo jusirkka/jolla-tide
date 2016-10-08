@@ -68,7 +68,6 @@ signals:
 private:
 
     QList<StationFactory*> m_Factories;
-    QHash<QString, QDomDocument> m_Info;
 
 };
 

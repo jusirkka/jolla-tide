@@ -41,8 +41,7 @@ QVariant Tide::ActiveStations::data(const QModelIndex& index, int role) const {
     }
 
     if (role == NameRole) {
-        QDomNode stationInfo = m_Parent->info(key);
-        return stationInfo.attributes().namedItem("name").nodeValue();
+        return m_Parent->info(key).attribute("name");
     }
 
     TideEvent ev = m_Events[key].next;
@@ -170,7 +169,7 @@ void Tide::ActiveStations::showpoints(int row) {
     QString key = m_Stations[row];
     const Station& s = m_Parent->station(key);
     PointsWindow* w = new PointsWindow(key, s);
-    w->resize(800, 200);
+    w->resize(1600, 800);
     w->show();
 }
 

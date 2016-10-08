@@ -1,4 +1,4 @@
-﻿#include "StationProvider.h"
+#include "StationProvider.h"
 #include <QDebug>
 
 
@@ -8,13 +8,16 @@ Tide::StationUpdateHandler::StationUpdateHandler(StationProvider* parent, const 
 {}
 
 void Tide::StationUpdateHandler::whenFinished(const Status& s) {
-    qDebug() << "Tide::StationUpdateHandler::whenFinished" << s.code << s.xmlDetail;
+    qDebug() << "Tide::StationUpdateHandler::whenFinished" << s.code << s.detail;
     if (s.code == Status::SUCCESS) {
-        emit m_Parent->stationChanged(m_Key);
         QModelIndex c = m_Parent->index(m_Parent->m_Visible.indexOf(m_Key));
         if (c.isValid()) {
+            qDebug() << "Tide::StationUpdateHandler: data changed";
             emit m_Parent->dataChanged(c, c);
+        } else {
+            qDebug() << "Tide::StationUpdateHandler: not visible";
         }
+        emit m_Parent->stationChanged(m_Key);
     }
 }
 
@@ -32,11 +35,8 @@ Tide::StationProvider::StationProvider(Factories* factories, QObject* parent):
     m_Factories(factories),
     m_Invalid()
 {
-    connect(m_Factories, SIGNAL(availableChanged(const QString&)), this, SLOT(updateAvailable(const QString&)));
+    connect(m_Factories, SIGNAL(availableChanged(const QString&)), this, SLOT(resetVisible(const QString&)));
 
-    QString errMsg;
-    int erow;
-    int ecol;
     for (int row = 0; row < m_Factories->rowCount(QModelIndex()); ++row) {
         StationFactory* factory = m_Factories->instance(row);
         QString fkey = factory->info().key;
@@ -45,34 +45,14 @@ Tide::StationProvider::StationProvider(Factories* factories, QObject* parent):
             m_Factories->update(row);
             continue;
         }
-        QHashIterator<QString, StationInfo> s(stations);
-        while (s.hasNext()) {
-            s.next();
-            QDomDocument doc(s.key());
-            doc.setContent(s.value().xmlDetail, &errMsg, &erow, &ecol);
-            if (!errMsg.isEmpty()) qDebug() << errMsg << erow << ecol;
-            m_AvailableStations[QString("%1%2%3").arg(fkey).arg(QChar(30)).arg(s.key())] = doc;
-        }
     }
 }
 
 
-void Tide::StationProvider::updateAvailable(const QString& key) {
-    QString errMsg;
-    int erow;
-    int ecol;
-    StationFactory* factory = m_Factories->instance(key);
-    if (!factory) return;
-    QString fkey = factory->info().key;
-    const QHash<QString, StationInfo>& stations = factory->available();
-    QHashIterator<QString, StationInfo> s(stations);
-    while (s.hasNext()) {
-        s.next();
-        QDomDocument doc(s.key());
-        doc.setContent(s.value().xmlDetail, &errMsg, &erow, &ecol);
-        if (!errMsg.isEmpty()) qDebug() << errMsg << erow << ecol;
-        m_AvailableStations[QString("%1%2%3").arg(fkey).arg(QChar(30)).arg(s.key())] = doc;
-    }
+void Tide::StationProvider::resetVisible(const QString&) {
+    QString filter = m_Filter;
+    m_Filter = ""; // enforce reset
+    setFilter(filter);
 }
 
 int Tide::StationProvider::rowCount(const QModelIndex&) const {
@@ -92,11 +72,12 @@ QVariant Tide::StationProvider::data(const QModelIndex& index, int role) const {
         return QVariant::fromValue(key);
     }
 
-    QDomNode stationNode = m_AvailableStations[key].firstChild();
+    QStringList parts = key.split(QChar::fromLatin1(30));
+    StationFactory* factory = m_Factories->instance(parts[0]);
+    QDomElement elem = factory->available()[parts[1]].info.documentElement();
 
     if (role == NameRole || role == Qt::DecorationRole) {
-        QString name = stationNode.attributes().namedItem("name").nodeValue();
-        return QVariant::fromValue(name);
+        return QVariant::fromValue(elem.attribute("name"));
     }
 
     if (role == DetailRole) {
@@ -104,24 +85,21 @@ QVariant Tide::StationProvider::data(const QModelIndex& index, int role) const {
         attrs << "county" << "country" << "region";
         QStringList details;
         foreach (QString attr, attrs) {
-            QDomNode detail = stationNode.attributes().namedItem(attr);
-            if (detail.isNull()) {
-                continue;
+            QString detail = elem.attribute(attr);
+            if (!detail.isEmpty()) {
+                details << detail;
             }
-            details << detail.nodeValue();
         }
         return QVariant::fromValue(details.join(" / "));
     }
 
     if (role == LocationRole) {
         // Mount Everest +27.5916+086.5640+8850CRSWGS_84/
-        QString location = stationNode.attributes().namedItem("location").nodeValue();
-        return QVariant::fromValue(Coordinates::parseISO6709(location).print());
+        return QVariant::fromValue(Coordinates::parseISO6709(elem.attribute("location")).print());
     }
 
     if (role == TypeRole) {
-        QString kind = stationNode.namedItem("kind").nodeValue();
-        return QVariant::fromValue(kind);
+        return QVariant::fromValue(elem.attribute("kind"));
     }
 
 
@@ -138,8 +116,10 @@ QHash<int, QByteArray> Tide::StationProvider::roleNames() const {
     return roles;
 }
 
-QDomNode Tide::StationProvider::info(const QString& key) {
-    return m_AvailableStations[key].firstChild();
+QDomElement Tide::StationProvider::info(const QString& key) {
+    QStringList parts = key.split(QChar::fromLatin1(30));
+    StationFactory* factory = m_Factories->instance(parts[0]);
+    return factory->available()[parts[1]].info.documentElement();
 }
 
 const Tide::Station& Tide::StationProvider::station(const QString& key) {
@@ -168,22 +148,29 @@ void Tide::StationProvider::setFilter(const QString& fter) {
         QStringList attrs;
         attrs << "name" << "county" << "country" << "region" << "location";
 
-        QHashIterator<QString, QDomDocument> st(m_AvailableStations);
-        while (st.hasNext()) {
-            st.next();
-            QDomNode stationNode = st.value().firstChild();
-            foreach (QString attr, attrs) {
-                QDomNode detail = stationNode.attributes().namedItem(attr);
-                if (detail.isNull()) {
-                    continue;
-                }
-                if (detail.nodeValue().contains(m_Filter, Qt::CaseInsensitive)) {
-                    m_Visible.append(st.key());
-                    QString loc = stationNode.attributes().namedItem("location").nodeValue();
-                    if (loc.isEmpty()) {
-                        locationUpdate.append(st.key());
+
+        for (int i = 0; i < m_Factories->rowCount(QModelIndex()); ++i) {
+            StationFactory* f = m_Factories->instance(i);
+            QHash<QString, StationInfo> stations = f->available();
+            QHashIterator<QString, StationInfo> st(stations);
+
+            while (st.hasNext()) {
+                st.next();
+                QDomElement elem = st.value().info.documentElement();
+                foreach (QString attr, attrs) {
+                    QString detail = elem.attribute(attr);
+                    if (detail.isEmpty()) {
+                        continue;
                     }
-                    break;
+                    if (detail.contains(m_Filter, Qt::CaseInsensitive)) {
+                        QString key = QString("%1%2%3").arg(f->info().key).arg(QChar(30)).arg(st.key());
+                        m_Visible.append(key);
+                        QString loc = elem.attribute("location");
+                        if (loc.isEmpty()) {
+                            locationUpdate.append(key);
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -193,7 +180,7 @@ void Tide::StationProvider::setFilter(const QString& fter) {
     foreach (QString key, locationUpdate) {
         QStringList parts = key.split(QChar::fromLatin1(30));
         StationFactory* factory = m_Factories->instance(parts[0]);
-        if (factory) factory->updateStationInfo("location", parts[1], new StationUpdateHandler(this, key));
+        factory->updateStationInfo("location", parts[1], new StationUpdateHandler(this, key));
     }
 
     endResetModel();

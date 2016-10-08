@@ -8,7 +8,7 @@ FactoryProxy::FactoryProxy(Factories* parent, const QString& key):
     m_Parent(parent), m_Key(key) {}
 
 void FactoryProxy::whenFinished(const Status& s) {
-    qDebug() << "FactoryProxy::whenFinished " << s.code << s.xmlDetail;
+    qDebug() << "FactoryProxy::whenFinished " << s.code << s.detail;
     if (s.code == Status::SUCCESS) {
         emit m_Parent->availableChanged(m_Key);
     }
@@ -25,18 +25,7 @@ Factories::~Factories() {}
 Factories::Factories(const QList<StationFactory*>& factories, QObject* parent):
     QAbstractListModel(parent),
     m_Factories(factories)
-{
-    QString errMsg;
-    int erow;
-    int ecol;
-    foreach (StationFactory* f, m_Factories) {
-        QString key = f->info().key;
-        QDomDocument doc(key);
-        doc.setContent(f->info().xmlDetail, &errMsg, &erow, &ecol);
-        if (!errMsg.isEmpty()) qDebug() << errMsg << erow << ecol;
-        m_Info[key] = doc;
-    }
-}
+{}
 
 
 int Factories::rowCount(const QModelIndex&) const {
@@ -52,22 +41,20 @@ QVariant Factories::data(const QModelIndex& index, int role) const {
 
     StationFactory* factory = m_Factories[index.row()];
 
-    QDomNode node = m_Info[factory->info().key].firstChild();
+    QDomElement f = factory->info().info.documentElement();
 
     if (role == NameRole || role == Qt::DecorationRole) {
-        QString name = node.attributes().namedItem("name").nodeValue();
-        return QVariant::fromValue(name);
+        return QVariant::fromValue(f.attribute("name"));
     }
 
 
     if (role == AboutRole) {
-        return QVariant::fromValue(node.attributes().namedItem("about").nodeValue());
+        return QVariant::fromValue(f.attribute("about"));
     }
 
     if (role == HomePageRole) {
-        return QVariant::fromValue(node.attributes().namedItem("home").nodeValue());
+        return QVariant::fromValue(f.attribute("home"));
     }
-
 
     return QVariant();
 }

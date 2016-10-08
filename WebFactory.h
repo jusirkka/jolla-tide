@@ -52,7 +52,6 @@ protected:
     QHash<QString, Station*> m_Loaded;
     QHash<QString, Timestamp> m_LastDataPoint;
     Station m_Invalid;
-    QDomDocument m_Doc;
     QNetworkAccessManager* m_DLManager;
     QHash<QString, ClientProxy*> m_Pending;
 

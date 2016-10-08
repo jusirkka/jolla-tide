@@ -180,7 +180,7 @@ QString Database::StationInfo(const QString& station, const QString& attr) {
         qDebug() << errMsg << erow << ecol;
         return QString();
     }
-    return doc.firstChild().attributes().namedItem(attr).nodeValue();
+    return doc.documentElement().attribute(attr);
 }
 
 void Database::UpdateStationInfo(const QString& provider, const QString& station, const QString& xmlinfo) {

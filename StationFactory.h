@@ -1,9 +1,10 @@
-﻿#ifndef STATION_FACTORY_H
+#ifndef STATION_FACTORY_H
 #define STATION_FACTORY_H
 
 #include <QtPlugin>
 #include <QString>
 #include <QList>
+#include <QDomDocument>
 
 #include "Station.h"
 
@@ -15,11 +16,11 @@ public:
 
     enum Code {NOOP, ERROR, SUCCESS, PENDING};
 
-    Status(Code c = NOOP, const QString& d = QString()): code(c), xmlDetail(d) {}
+    Status(Code c = NOOP, const QString& d = QString()): code(c), detail(d) {}
 
 
     Code code;
-    QString xmlDetail;
+    QString detail;
 };
 
 
@@ -27,11 +28,15 @@ class StationInfo {
 
 public:
 
-    StationInfo(const QString& k, const QString& d): key(k), xmlDetail(d) {}
+    StationInfo(const QString& k, const QString& xml): key(k) {
+        info.setContent(xml);
+    }
+
+    StationInfo(const QString& k, const QDomDocument& doc): key(k), info(doc) {}
     StationInfo() {}
 
     QString key;
-    QString xmlDetail;
+    QDomDocument info;
 };
 
 

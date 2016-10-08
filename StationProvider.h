@@ -1,4 +1,4 @@
-﻿#ifndef STATION_PROVIDER_H
+#ifndef STATION_PROVIDER_H
 #define STATION_PROVIDER_H
 
 #include <QAbstractListModel>
@@ -56,7 +56,7 @@ public:
 
     ~StationProvider();
 
-    QDomNode info(const QString& key);
+    QDomElement info(const QString& key);
     const Station& station(const QString& key);
 
 
@@ -65,17 +65,15 @@ public:
 
 public slots:
 
-    void updateAvailable(const QString&);
+    void resetVisible(const QString& factory);
 
 signals:
 
     void filterChanged(const QString& filter);
     void stationChanged(const QString& key);
 
-
 private:
 
-    QHash<QString, QDomDocument> m_AvailableStations;
     QList<QString> m_Visible;
     Factories* m_Factories;
     QString m_Filter;

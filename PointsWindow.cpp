@@ -10,6 +10,11 @@
 #include <qwt_scale_widget.h>
 #include <qwt_symbol.h>
 #include <qwt_math.h>
+#include <qwt_plot_grid.h>
+#include <qwt_date.h>
+#include <qwt_date_scale_engine.h>
+#include <qwt_date_scale_draw.h>
+
 #include <QMouseEvent>
 #include <fftw3.h>
 
@@ -17,14 +22,16 @@ using namespace Tide;
 
 class ReadingsIterator {
 public:
-    ReadingsIterator(const QString& key, const Station& s);
+    ReadingsIterator(const QString& key, const Station* s);
     bool next();
     Timestamp stamp();
     double reading();
 
+    ~ReadingsIterator() {}
+
 private:
 
-    const Station m_Station;
+    const Station* m_Station;
 
     int m_CurrentPatch;
     int m_CurrentStamp;
@@ -40,7 +47,8 @@ private:
 
 };
 
-ReadingsIterator::ReadingsIterator(const QString &key, const Station& s):
+
+ReadingsIterator::ReadingsIterator(const QString &key, const Station* s):
     m_Station(s),
     m_CurrentPatch(0) {
 
@@ -100,7 +108,7 @@ double ReadingsIterator::reading() {
     qint64 epoch_id = m_Epochs[m_CurrentPatch];
     if (m_CurrentStamp < m_PatchFirst[epoch_id]) {
         // between patches
-        Amplitude v = m_Station.predictTideLevel(Timestamp::fromPosixTime(m_CurrentStamp));
+        Amplitude v = m_Station->predictTideLevel(Timestamp::fromPosixTime(m_CurrentStamp));
         return v.value;
     }
 
@@ -125,7 +133,7 @@ PointsWindow::PointsWindow(const QString& key, const Station& station):
     QVector<double> gen;
     QVector<Timestamp> stamps;
 
-    ReadingsIterator points(key, station);
+    ReadingsIterator points(key, &station);
     while (points.next()) {
         stamps.append(points.stamp());
         orig.append(points.reading());
@@ -156,6 +164,9 @@ GraphFrame::GraphFrame(const QString &name): QwtPlot(QwtText(name)) {
     canvas()->setStyleSheet("QwtPlotCanvas {border: none; margin: 1; background-color: white;}");
     plotLayout()->setCanvasMargin(0);
 
+    QwtPlotGrid *grid = new QwtPlotGrid();
+    grid->attach(this);
+
     enableAxis(QwtPlot::yLeft);
     enableAxis(QwtPlot::xBottom);
 
@@ -163,15 +174,6 @@ GraphFrame::GraphFrame(const QString &name): QwtPlot(QwtText(name)) {
     axisWidget(QwtPlot::yLeft)->setSpacing(0);
     axisWidget(QwtPlot::xBottom)->setMargin(0);
 
-    m_Bottom.setAlignment(QwtScaleDraw::BottomScale);
-    m_Bottom.setPosition(0);
-    m_Bottom.scaleDraw()->enableComponent(QwtScaleDraw::Labels, false);
-    m_Bottom.attach(this);
-
-    m_Left.setAlignment(QwtScaleDraw::LeftScale);
-    m_Left.setPosition(0);
-    m_Left.scaleDraw()->enableComponent(QwtScaleDraw::Labels, false);
-    m_Left.attach(this);
 
     updateCanvasMargins();
 
@@ -207,16 +209,22 @@ TimeDomain::TimeDomain(const QString& station, const QVector<Timestamp>& stamps,
     Interval timescale = stamps[stamps.size() - 1] - start;
     qDebug() << "days = " << timescale.days();
 
-    setAxisScale(QwtPlot::xBottom, 0.0, timescale.days());
 
+    QwtDateScaleDraw* scaleDraw = new QwtDateScaleDraw(Qt::UTC);
+    QwtDateScaleEngine* scaleEngine = new QwtDateScaleEngine(Qt::UTC);
 
-    QVector<double> days;
+    scaleDraw->setDateFormat(QwtDate::Day, "MM-dd");
+
+    setAxisScaleDraw(QwtPlot::xBottom, scaleDraw);
+    setAxisScaleEngine(QwtPlot::xBottom, scaleEngine);
+
+    QVector<double> msecs;
     foreach (Timestamp t, stamps) {
-        days.append((t - start).days());
+        msecs.append(t.posix()*1000);
     }
 
-    m_Orig.setSamples(days, orig);
-    m_Gen.setSamples(days, gen);
+    m_Orig.setSamples(msecs, orig);
+    m_Gen.setSamples(msecs, gen);
 
     replot();
 }

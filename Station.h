@@ -113,7 +113,7 @@ public:
 
 protected:
 
-    const ConstituentSet* m_Constituents;
+    ConstituentSet* m_Constituents;
 
 
     // G. Dairiki code, slightly revised.  See Station.cc for

@@ -14,7 +14,7 @@ TideForecast::TideForecast(): WebFactory("tfc",
                                          "Tide Times &amp; Time Charts for the World",
                                          "http://www.tide-forecast.com")
 {
-    m_BaseUrl = m_Doc.firstChild().attributes().namedItem("home").nodeValue();
+    m_BaseUrl = m_Info.info.documentElement().attribute("home");
     m_AvailUrl = QString("%1/locations/nav").arg(m_BaseUrl);
 }
 
@@ -28,18 +28,10 @@ QString TideForecast::stationUrl(const QString& key) {
 
 QString TideForecast::locationUrl(const QString& key) {
     if (!m_Available.contains(key)) return QString();
-    QString errMsg;
-    int erow;
-    int ecol;
-    QDomDocument doc(key);
-    doc.setContent(m_Available[key].xmlDetail, &errMsg, &erow, &ecol);
-    if (!errMsg.isEmpty()) {
-        qDebug() << errMsg << erow << ecol;
-        return QString();
-    }
-    QString city = doc.documentElement().attribute("name");
+    QDomElement f = m_Available[key].info.documentElement();
+    QString city = f.attribute("name");
     if (city.isEmpty()) return QString();
-    QString country = doc.documentElement().attribute("country");
+    QString country = f.attribute("country");
     if (country.isEmpty()) return QString();
     QString url = QString("http://maps.googleapis.com/maps/api/geocode/xml?address=%1,%2").arg(city).arg(country);
     m_KnownLocations[url] = key;
@@ -130,22 +122,28 @@ void TideForecast::handleLocationUpdate(const QString &key, ClientProxy *client,
     page.setContent(reply->readAll());
     QDomElement root = page.firstChildElement("GeocodeResponse");
     QString status = root.firstChildElement("status").text();
-    if (status.toLower().trimmed() != "ok") {
-        Status s(Status::ERROR, QString("<error status='request failed: %1'/>").arg(status));
-        client->whenFinished(s);
-        delete client;
+    if (status.toLower().trimmed() == "ok") {
+        QDomElement loc = root.firstChildElement("result").firstChildElement("geometry").firstChildElement("location");
+        double lng = loc.firstChildElement("lng").text().toDouble();
+        double lat = loc.firstChildElement("lat").text().toDouble();
+        storeLocation(key, client, Coordinates::fromWGS84LatLong(lat, lng).toISO6709());
         return;
     }
-    QDomElement loc = root.firstChildElement("result").firstChildElement("geometry").firstChildElement("location");
-    double lng = loc.firstChildElement("lng").text().toDouble();
-    double lat = loc.firstChildElement("lat").text().toDouble();
-    storeLocation(key, client, Coordinates::fromWGS84LatLong(lat, lng).toISO6709());
+
+    if (status.toLower().trimmed() == "zero_results") {
+        storeLocation(key, client, "N/A");
+        return;
+    }
+
+    Status s(Status::ERROR, QString("<error status='request failed: %1'/>").arg(status));
+    client->whenFinished(s);
+    delete client;
 }
 
 void TideForecast::handleFirstAvailPage(ClientProxy* client, QNetworkReply* reply) {
     // FIXME: remove after testing
     QList<int> testing;
-    testing << 1 << 8 << 194;
+    testing << 1 << 8 << 194 << 193;
     QByteArray page = reply->readAll();
     qDebug() << page.size();
     xmlDocPtr doc = htmlReadMemory(page.constData(), page.size(), "", NULL, HTML_PARSE_NOWARNING | HTML_PARSE_NOERROR);

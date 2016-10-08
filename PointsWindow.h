@@ -19,7 +19,6 @@ public:
 protected:
 
     QwtPlotCurve m_Orig, m_Gen;
-    QwtPlotScaleItem m_Bottom, m_Left;
 
 };
 
