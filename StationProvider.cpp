@@ -99,7 +99,7 @@ QVariant Tide::StationProvider::data(const QModelIndex& index, int role) const {
     }
 
     if (role == TypeRole) {
-        return QVariant::fromValue(elem.attribute("kind"));
+        return QVariant::fromValue(elem.attribute("type"));
     }
 
 

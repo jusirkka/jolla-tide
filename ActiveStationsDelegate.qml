@@ -14,7 +14,7 @@ Rectangle {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onClicked: {
             if (mouse.button === Qt.LeftButton) {
-                eventsModel.init(model.key)
+                eventsModel.init(model.key, model.mark)
                 stackView.push(Qt.resolvedUrl("EventsPage.qml"))
             }
             else if (mouse.button === Qt.RightButton) {
@@ -72,20 +72,32 @@ Rectangle {
     Menu {
         id: contextMenu
         MenuItem {
-            //% "Remove"
-            text: qsTrId("tide-remove")
-            onTriggered: activeStationsModel.remove(model.index)
-        }
-        MenuItem {
             //% "Move to top"
             text: qsTrId("tide-move_to_top")
             visible: model.index !== 0
             onTriggered: activeStationsModel.movetotop(model.index)
         }
         MenuItem {
+            //% "Set mark"
+            text: qsTrId("tide-set-mark")
+            onTriggered: {
+                stackView.push({item: Qt.resolvedUrl("SetMarkPage.qml"), properties: {
+                                       station: model.index,
+                                       name: model.name,
+                                       level: model.level,
+                                       mark: model.mark
+                                   }})
+            }
+        }
+        MenuItem {
             //% "Show points"
             text: qsTrId("tide-show-points")
             onTriggered: activeStationsModel.showpoints(model.index)
+        }
+        MenuItem {
+            //% "Remove"
+            text: qsTrId("tide-remove")
+            onTriggered: activeStationsModel.remove(model.index)
         }
     }
 }

@@ -134,7 +134,7 @@ QString TideEvent::description () const {
         return qtTrId("tide-event-sunrise");
     case TideEvent::sunset:
         //% "Sunset"
-        return qtTrId("tide-event-sunrise");
+        return qtTrId("tide-event-sunset");
     case TideEvent::moonrise:
         //% "Moonrise"
         return qtTrId("tide-event-moonrise");

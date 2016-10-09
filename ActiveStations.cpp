@@ -12,9 +12,11 @@ Tide::ActiveStations::ActiveStations(StationProvider* parent):
     QAbstractListModel(parent),
     m_Parent(parent)
 {
-    QStringList actives = Database::ActiveStations();
-    foreach (QString saved, actives) {
-        append(saved);
+    QHashIterator<QString, QString> ac(Database::ActiveStations());
+    while (ac.hasNext()) {
+        ac.next();
+        m_Marks[ac.key()] = Amplitude::parseDottedMeters(ac.value());
+        append(ac.key());
     }
     connect(m_Parent, SIGNAL(stationChanged(const QString&)), this, SLOT(stationChanged(const QString&)));
 
@@ -44,6 +46,16 @@ QVariant Tide::ActiveStations::data(const QModelIndex& index, int role) const {
         return m_Parent->info(key).attribute("name");
     }
 
+    if (role == LevelRole) {
+        const Station& s = m_Parent->station(key);
+        return s.predictTideLevel(Timestamp::now()).print();
+    }
+
+    if (role == MarkRole) {
+        return m_Marks[key].print();
+    }
+
+
     TideEvent ev = m_Events[key].next;
     if (role == NextEventDescRole) {
         return ev.description();
@@ -62,6 +74,8 @@ QHash<int, QByteArray> Tide::ActiveStations::roleNames() const {
     QHash<int, QByteArray> roles;
     roles[NameRole] = "name";
     roles[KeyRole] = "key";
+    roles[LevelRole] = "level";
+    roles[MarkRole] = "mark";
     roles[NextEventDescRole] = "description";
     roles[NextEventIconRole] = "icon";
     roles[NextEventTimestampRole] = "timestamp";
@@ -97,7 +111,7 @@ void Tide::ActiveStations::computeNextEvent() {
         Timestamp start = now;
         while (org.isEmpty()) {
             Timestamp then = start + Interval::fromSeconds(3600*6);
-            s.predictTideEvents(start, then, org);
+            s.predictTideEvents(start, then, org, m_Marks[ev.key()]);
             start = then;
         }
         TideEvent event = org.first();
@@ -119,7 +133,7 @@ void Tide::ActiveStations::stationChanged(const QString& key) {
     Timestamp start = now;
     while (org.isEmpty()) {
         Timestamp then = start + Interval::fromSeconds(3600*6);
-        s.predictTideEvents(start, then, org);
+        s.predictTideEvents(start, then, org, m_Marks[key]);
         start = then;
     }
     TideEvent event = org.first();
@@ -139,6 +153,7 @@ bool Tide::ActiveStations::removeRows(int row, int count, const QModelIndex& par
     m_Stations.removeAt(row);
     delete m_Events[station].recompute;
     m_Events.remove(station);
+    m_Marks.remove(station);
     endRemoveRows();
     return true;
 }
@@ -151,6 +166,7 @@ void Tide::ActiveStations::remove(int row) {
 void Tide::ActiveStations::movetotop(int row) {
     if (row < 1 || row > m_Stations.size() - 1) return;
     QString station = m_Stations[row];
+    Amplitude mark = m_Marks.value(station);
     removeRows(row, 1);
     beginInsertRows(QModelIndex(), 0, 0);
     m_Stations.push_front(station);
@@ -159,6 +175,7 @@ void Tide::ActiveStations::movetotop(int row) {
     d.recompute->setSingleShot(true);
     connect(d.recompute, SIGNAL(timeout()), this, SLOT(computeNextEvent()));
     m_Events[station] = d;
+    m_Marks[station] = mark;
     computeNextEvent();
     endInsertRows();
     emit dataChanged(index(0), index(m_Stations.size() - 1));
@@ -173,3 +190,9 @@ void Tide::ActiveStations::showpoints(int row) {
     w->show();
 }
 
+void Tide::ActiveStations::setmark(int row, const QString& mark) {
+    QString key = m_Stations[row];
+    m_Marks[key] = Amplitude::parseDottedMeters(mark);
+    Database::Activate(key, m_Marks[key].print());
+    stationChanged(key);
+}

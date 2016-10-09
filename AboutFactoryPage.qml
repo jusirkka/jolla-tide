@@ -2,7 +2,7 @@ import QtQuick 2.0
 import QtQuick.Controls 1.4
 import net.kvanttiapina.tide.theme 1.0
 
-Item {
+Rectangle {
 
     property int factory
     property string name
@@ -59,7 +59,6 @@ Item {
         anchors {
             left: parent.left
             right: parent.right
-            top: updateButton.bottom
             bottom: parent.bottom
         }
         //% "Back"

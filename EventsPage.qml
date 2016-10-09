@@ -49,7 +49,6 @@ Item {
         anchors {
             left: parent.left
             right: parent.right
-            top: eventsList.bottom
             bottom: parent.bottom
         }
         text: "Back"

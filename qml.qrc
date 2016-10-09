@@ -9,5 +9,6 @@
         <file>EventsPage.qml</file>
         <file>EventsDelegate.qml</file>
         <file>AboutFactoryPage.qml</file>
+        <file>SetMarkPage.qml</file>
     </qresource>
 </RCC>

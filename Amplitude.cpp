@@ -19,6 +19,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <QStringList>
+#include <QRegularExpression>
 #include "Amplitude.h"
 #include <math.h>
 
@@ -27,6 +29,27 @@ using namespace Tide;
 
 Amplitude Amplitude::fromDottedMeters(double m, int deriv) {
     return Amplitude(m, 1, - deriv);
+}
+
+Amplitude Amplitude::parseDottedMeters(const QString& s) {
+    QStringList parts = s.split(QChar(' '));
+    if (parts.length() != 2) return Amplitude();
+    bool ok;
+    double v = parts[0].toDouble(&ok);
+    if (!ok) return Amplitude();
+    QString r = parts[1];
+    if (r[0] != 'm') return Amplitude();
+    r.remove(0, 1);
+    if (r.isEmpty()) return Amplitude(v, 1, 0);
+    if (r[0] != '/') return Amplitude();
+    r.remove(0, 1);
+    if (r[0] != 's') return Amplitude();
+    if (r.isEmpty()) return Amplitude(v, 1, -1);
+    if (r[0] != '^') return Amplitude();
+    int deriv = r.toInt(&ok);
+    if (!ok) return Amplitude();
+
+    return Amplitude(v, 1, - deriv);
 }
 
 Amplitude Amplitude::pow(double m, int ld, int td, int p) {
@@ -94,4 +117,33 @@ bool (Tide::operator>) (const Amplitude& a, const Amplitude& b) {
 bool (Tide::operator==) (const Amplitude& a, const Amplitude& b) {
     throw_if_mismatch(a, b);
     return a.value == b.value;
+}
+
+QString Amplitude::print() const {
+    QString m;
+    QString s;
+
+    if (L == 0) {
+        m = "1";
+    } else if (L == 1){
+        m = QString("m");
+    } else {
+        m = QString("m^%1").arg(L);
+    }
+
+    if (T == 0) {
+        if (L == 0) {
+            return "notset";
+        }
+        return QString("%1 %2").arg(value, 0, 'f', 1).arg(m);
+    }
+
+    if (T == -1) {
+        s = QString("s");
+    } else {
+        s = QString("s^%1").arg(-T);
+    }
+
+
+    return QString("%1 %2/%3").arg(value).arg(m).arg(s);
 }

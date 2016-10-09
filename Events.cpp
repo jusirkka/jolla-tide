@@ -70,11 +70,12 @@ void Tide::Events::rewind() {
 }
 
 
-void Tide::Events::init(const QString& key) {
+void Tide::Events::init(const QString& key, const QString& mark) {
     qDebug() << "init" << key;
     beginResetModel();
     m_Events.clear();
     m_Station = key;
+    m_Mark = Amplitude::parseDottedMeters(mark);
     computeEvents(-10);
     computeEvents(10);
     qDebug() << "init" << m_Events.size();
@@ -98,9 +99,9 @@ void Tide::Events::computeEvents(int cnt) {
     while (org.size() < mul*cnt) {
         Timestamp then = start + mul * Interval::fromSeconds(3600*24);
         if (mul < 0) {
-            s.predictTideEvents(then, start, org);
+            s.predictTideEvents(then, start, org, m_Mark);
         } else {
-            s.predictTideEvents(start, then, org);
+            s.predictTideEvents(start, then, org, m_Mark);
         }
         start = then;
     }

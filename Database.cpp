@@ -32,7 +32,8 @@ Database::Database() {
                "xmlinfo text not null)");
     query.exec("create table if not exists actives ("
                "id integer primary key autoincrement, "
-               "station_id integer not null)");
+               "station_id integer not null, "
+               "mark text default 'notset')");
     m_DB.close();
 }
 
@@ -70,18 +71,19 @@ static void exec_and_trace(QSqlQuery& r) {
     if (r.lastError().isValid()) qDebug() << r.lastError();
 }
 
-QStringList Database::ActiveStations(const QString& provider) {
-    QStringList s;
+QHash<QString, QString> Database::ActiveStations(const QString& provider) {
+    QHash<QString, QString> s; // key, mark
     QSqlQuery r;
     if (provider.isEmpty()) {
-         r = instance()->exec("select s.fuid, s.suid from stations s join actives a on s.id=a.station_id");
+         r = instance()->exec("select s.fuid, s.suid, a.mark from stations s join actives a on s.id=a.station_id");
     } else {
-        r = instance()->prepare("select s.fuid, s.suid from stations s join actives a on s.id=a.station_id where s.fuid=?");
+        r = instance()->prepare("select s.fuid, s.suid, a.mark from stations s join actives a on s.id=a.station_id where s.fuid=?");
         r.bindValue(0, provider);
         exec_and_trace(r);
     }
     while (r.next()) {
-        s << QString("%1%2%3").arg(r.value(0).toString()).arg(QChar(30)).arg(r.value(1).toString());
+        QString key = QString("%1%2%3").arg(r.value(0).toString()).arg(QChar(30)).arg(r.value(1).toString());
+        s[key] = r.value(2).toString();
     }
     instance()->close();
     return s;
@@ -108,7 +110,7 @@ QHash<QString, QString> Database::AllStations(const QString& provider) {
     return s;
 }
 
-void Database::Activate(const QString& station) {
+void Database::Activate(const QString& station, const QString& mark) {
     QSqlQuery r;
     QStringList parts = station.split(QChar::fromLatin1(30));
     r = instance()->prepare("select id from stations where fuid=? and suid=?");
@@ -123,10 +125,14 @@ void Database::Activate(const QString& station) {
     r.bindValue(0, station_id);
     exec_and_trace(r);
     if (r.next()) {
-        return; // already active
+        r = instance()->prepare("update actives set mark = ? where station_id = ?");
+        r.bindValue(0, mark);
+        r.bindValue(1, station_id);
+    } else {
+        r = instance()->prepare("insert into actives (station_id, mark) values (?, ?)");
+        r.bindValue(0, station_id);
+        r.bindValue(1, mark);
     }
-    r = instance()->prepare("insert into actives (station_id) values (?)");
-    r.bindValue(0, station_id);
     exec_and_trace(r);
     instance()->close();
 }

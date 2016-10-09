@@ -7,7 +7,7 @@ ApplicationWindow {
 
     id: tideApp
     width: 300
-    height: 200
+    height: 400
     visible: true
 
 

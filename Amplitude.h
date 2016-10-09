@@ -67,6 +67,7 @@ public:
     int L, T;
 
     static Amplitude fromDottedMeters(double, int);
+    static Amplitude parseDottedMeters(const QString& s);
     static Amplitude pow(double m, int l, int t, int p);
 
     Amplitude(const Amplitude& a): value(a.value), L(a.L), T(a.T) {}
@@ -77,6 +78,7 @@ public:
     Amplitude null() {return Amplitude(0, L, T);}
     Amplitude unit() {return Amplitude(1, L, T);}
 
+    QString print() const;
 
 private:
 

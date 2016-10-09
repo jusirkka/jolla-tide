@@ -2,23 +2,26 @@ import QtQuick 2.0
 import QtQuick.Controls 1.4
 import net.kvanttiapina.tide.theme 1.0
 
-Item {
+Rectangle {
     Label {
         id: header
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: parent.top
+        }
         //% "New location"
         text: qsTrId("tide-new_location")
         horizontalAlignment: Text.AlignRight
-        font.pixelSize: Theme.fontSizeLarge
+        font.pixelSize: Theme.fontSizeHuge
     }
     TextField {
         id: searchField
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: header.bottom
-
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: header.bottom
+        }
         //% "Search locations"
         placeholderText: qsTrId("tide-search_locations")
         onFocusChanged: if (focus) forceActiveFocus()
@@ -32,10 +35,12 @@ Item {
 
     Label {
         id: placeHolder
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: searchField.bottom
-        anchors.bottom: backButton.top
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: searchField.bottom
+            bottom: backButton.top
+        }
         visible: locationListView.count == 0
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -48,10 +53,13 @@ Item {
     ListView {
         id: locationListView
         height: parent.height * 0.8
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: searchField.bottom
-        anchors.bottom: backButton.top
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: searchField.bottom
+            bottom: backButton.top
+            topMargin: Theme.paddingLarge
+        }
         visible: locationListView.count != 0
         model: stationModel
         delegate: StationSearchDelegate {

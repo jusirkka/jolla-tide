@@ -12,9 +12,9 @@ class Database {
 
 public:
 
-    static QStringList ActiveStations(const QString& provider = QString());
+    static QHash<QString, QString> ActiveStations(const QString& provider = QString());
     static QHash<QString, QString> AllStations(const QString& provider = QString());
-    static void Activate(const QString& station);
+    static void Activate(const QString& station, const QString& mark = "notset");
     static void Deactivate(const QString& station);
     static int StationID(const QString& station);
     static QString StationInfo(const QString& station, const QString& attr);

@@ -1,8 +1,11 @@
-- mark events
 - sun/moon events
 - tide level in event description
 - event images
 - split to app and update server
 - provider logos in about page
+- station info page (from context menu)
 - bug: 'log not found in Events.xml'
 - bug: inconsistent ConstituentSet calculation
+- bug: double dl of updates: 'Epoch already present'
+- bug: active stations in random order
+- bug: non-persistent marks

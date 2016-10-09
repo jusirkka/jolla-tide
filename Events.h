@@ -41,7 +41,7 @@ public:
 
     Q_INVOKABLE void forward();
     Q_INVOKABLE void rewind();
-    Q_INVOKABLE void init(const QString& key);
+    Q_INVOKABLE void init(const QString& key, const QString& mark);
 
     ~Events();
 
@@ -64,6 +64,7 @@ private:
     StationProvider* m_Parent;
     double m_Today;
     double m_Delta;
+    Amplitude m_Mark;
 };
 
 }

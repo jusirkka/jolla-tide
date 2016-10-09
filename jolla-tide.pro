@@ -12,7 +12,7 @@ SOURCES += main.cpp StationProvider.cpp Station.cpp Angle.cpp Amplitude.cpp Coor
 
 lupdate_only {
     SOURCES += AboutFactoryPage.qml EventsDelegate.qml MainPage.qml StationSearchPage.qml tide.qml \
-               ActiveStationsDelegate.qml EventsPage.qml StationSearchDelegate.qml
+               ActiveStationsDelegate.qml EventsPage.qml StationSearchDelegate.qml SetMarkPage.qml
 }
 
 HEADERS += Amplitude.h ConstituentSet.h Speed.h StationProvider.h Year.h Angle.h Coordinates.h Station.h \

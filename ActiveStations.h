@@ -20,6 +20,8 @@ public:
     enum ActiveStationRoles {
         NameRole = Qt::UserRole + 1,
         KeyRole,
+        LevelRole,
+        MarkRole,
         NextEventIconRole,
         NextEventDescRole,
         NextEventTimestampRole
@@ -46,6 +48,7 @@ public:
     Q_INVOKABLE void remove(int row);
     Q_INVOKABLE void movetotop(int row);
     Q_INVOKABLE void showpoints(int row);
+    Q_INVOKABLE void setmark(int row, const QString& mark);
 
     ~ActiveStations();
 
@@ -64,6 +67,7 @@ private:
 
     QList<QString> m_Stations;
     QHash<QString, Data> m_Events;
+    QHash<QString, Amplitude> m_Marks;
     StationProvider* m_Parent;
 };
 
