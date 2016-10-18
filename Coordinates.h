@@ -38,12 +38,13 @@ public:
 
     QString print();
     QString toISO6709();
-    double latitude() const {return m_Latitude;}
-    double longitude() const {return m_Longitude;}
+    double lat() const {return m_Latitude;}
+    double lng() const {return m_Longitude;}
     const QString& datum() const {return m_Datum;}
 
     bool northern() const {return m_Latitude >= 0;}
     bool eastern() const {return m_Longitude >= 0;}
+    bool valid() const {return m_Datum != "Invalid";}
 
     ushort degreesLat() const;
     ushort degreesLng() const;

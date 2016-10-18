@@ -4,7 +4,7 @@ import net.kvanttiapina.tide.theme 1.0
 
 Rectangle {
 
-    height: labelColumn.implicitHeight + 2*Theme.paddingMedium
+    height: Math.max(labelColumn.implicitHeight, dateLabel.implicitHeight, eventIcon.implicitHeight) + 2*Theme.paddingSmall
 
     MouseArea {
         id: mus
@@ -55,7 +55,6 @@ Rectangle {
             text: model.description
             font.pixelSize: Theme.fontSizeSmall
             elide: Text.ElideRight
-            wrapMode: Text.Wrap
         }
     }
     Label {
@@ -90,14 +89,21 @@ Rectangle {
             }
         }
         MenuItem {
-            //% "Show points"
-            text: qsTrId("tide-show-points")
-            onTriggered: activeStationsModel.showpoints(model.index)
+            //% "About"
+            text: qsTrId("tide-about")
+            onTriggered: {
+                stackView.push({item: Qt.resolvedUrl("AboutStationPage.qml"), properties: {key: model.key}})
+            }
         }
         MenuItem {
             //% "Remove"
             text: qsTrId("tide-remove")
             onTriggered: activeStationsModel.remove(model.index)
+        }
+        MenuItem {
+            //% "Show points"
+            text: qsTrId("tide-show-points")
+            onTriggered: activeStationsModel.showpoints(model.index)
         }
     }
 }

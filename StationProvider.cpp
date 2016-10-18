@@ -77,7 +77,7 @@ QVariant Tide::StationProvider::data(const QModelIndex& index, int role) const {
     QDomElement elem = factory->available()[parts[1]].info.documentElement();
 
     if (role == NameRole || role == Qt::DecorationRole) {
-        return QVariant::fromValue(elem.attribute("name"));
+        return elem.attribute("name");
     }
 
     if (role == DetailRole) {
@@ -90,16 +90,16 @@ QVariant Tide::StationProvider::data(const QModelIndex& index, int role) const {
                 details << detail;
             }
         }
-        return QVariant::fromValue(details.join(" / "));
+        return details.join(" / ");
     }
 
     if (role == LocationRole) {
         // Mount Everest +27.5916+086.5640+8850CRSWGS_84/
-        return QVariant::fromValue(Coordinates::parseISO6709(elem.attribute("location")).print());
+        return Coordinates::parseISO6709(elem.attribute("location")).print();
     }
 
     if (role == TypeRole) {
-        return QVariant::fromValue(elem.attribute("type"));
+        return elem.attribute("type");
     }
 
 
@@ -188,4 +188,46 @@ void Tide::StationProvider::setFilter(const QString& fter) {
 }
 
 QString Tide::StationProvider::filter() const {return m_Filter;}
+
+
+QString Tide::StationProvider::name(const QString& key) {
+    return info(key).attribute("name");
+}
+
+QString Tide::StationProvider::location(const QString& key) {
+    return Coordinates::parseISO6709(info(key).attribute("location")).print();
+}
+
+QString Tide::StationProvider::kind(const QString& key) {
+    return info(key).attribute("type");
+}
+
+QString Tide::StationProvider::detail(const QString& key) {
+    QStringList attrs;
+    attrs << "county" << "country" << "region";
+    QStringList details;
+    QDomElement elem = info(key);
+    foreach (QString attr, attrs) {
+        QString detail = elem.attribute(attr);
+        if (!detail.isEmpty()) {
+            details << detail;
+        }
+    }
+    return details.join(" / ");
+}
+
+QString Tide::StationProvider::provider(const QString& key) {
+    QStringList parts = key.split(QChar::fromLatin1(30));
+    StationFactory* factory = m_Factories->instance(parts[0]);
+    QDomElement f = factory->info().info.documentElement();
+    return f.attribute("name");
+}
+
+QString Tide::StationProvider::providerlogo(const QString& key) {
+    QStringList parts = key.split(QChar::fromLatin1(30));
+    StationFactory* factory = m_Factories->instance(parts[0]);
+    QDomElement f = factory->info().info.documentElement();
+    return f.attribute("logo");
+}
+
 

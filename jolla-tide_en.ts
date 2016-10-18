@@ -105,7 +105,7 @@
     </message>
     <message id="tide-update-stations">
         <source>Update stations</source>
-        <translation>Update stations</translation>
+        <translation>Update Stations</translation>
     </message>
     <message id="tide-update-back">
         <source>Back</source>
@@ -121,7 +121,7 @@
     </message>
     <message id="tide-set-mark">
         <source>Set mark</source>
-        <translation>Set mark</translation>
+        <translation>Set Mark</translation>
     </message>
     <message id="tide-show-points">
         <source>Show points</source>
@@ -143,21 +143,21 @@
         <source>New Location</source>
         <translation>New Location</translation>
     </message>
-    <message id="tide-about-factory">
-        <source>About %s</source>
-        <translation>About</translation>
-    </message>
     <message id="tide-event-sunset">
         <source>Sunset</source>
         <translation>Sunset</translation>
     </message>
     <message id="tide-current-level">
         <source>Current level</source>
-        <translation>Current level</translation>
+        <translation>Current Level</translation>
     </message>
     <message id="tide-mark">
         <source>Mark</source>
         <translation>Mark</translation>
+    </message>
+    <message id="tide-about">
+        <source>About</source>
+        <translation>About</translation>
     </message>
 </context>
 </TS>

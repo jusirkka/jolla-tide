@@ -63,6 +63,14 @@ public:
     QString filter() const;
     void setFilter(const QString& s);
 
+    Q_INVOKABLE QString name(const QString& station);
+    Q_INVOKABLE QString location(const QString& station);
+    Q_INVOKABLE QString kind(const QString& station);
+    Q_INVOKABLE QString detail(const QString& station);
+    Q_INVOKABLE QString provider(const QString& station);
+    Q_INVOKABLE QString providerlogo(const QString& station);
+
+
 public slots:
 
     void resetVisible(const QString& factory);

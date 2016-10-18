@@ -4,7 +4,7 @@ import net.kvanttiapina.tide.theme 1.0
 
 Rectangle {
 
-    height: Math.max(dateLabel.implicitHeight, descriptionLabel.implicitHeight) + 2*Theme.paddingMedium
+    height: Math.max(dateLabel.implicitHeight, descriptionLabel.implicitHeight, eventIcon.implicitHeight) + 2*Theme.paddingSmall
 
     Image {
         id: eventIcon

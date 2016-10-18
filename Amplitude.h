@@ -79,6 +79,7 @@ public:
     Amplitude unit() {return Amplitude(1, L, T);}
 
     QString print() const;
+    bool valid() const {return L != 0 || T != 0;}
 
 private:
 

@@ -44,16 +44,20 @@ QVariant Factories::data(const QModelIndex& index, int role) const {
     QDomElement f = factory->info().info.documentElement();
 
     if (role == NameRole || role == Qt::DecorationRole) {
-        return QVariant::fromValue(f.attribute("name"));
+        return f.attribute("name");
     }
 
 
     if (role == AboutRole) {
-        return QVariant::fromValue(f.attribute("about"));
+        return f.attribute("about");
     }
 
     if (role == HomePageRole) {
-        return QVariant::fromValue(f.attribute("home"));
+        return f.attribute("home");
+    }
+
+    if (role == LogoRole) {
+        return f.attribute("logo");
     }
 
     return QVariant();
@@ -63,6 +67,7 @@ QHash<int, QByteArray> Factories::roleNames() const {
     QHash<int, QByteArray> roles;
     roles[NameRole] = "name";
     roles[AboutRole] = "about";
+    roles[LogoRole] = "logo";
     roles[HomePageRole] = "home";
     return roles;
 }

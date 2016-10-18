@@ -9,9 +9,9 @@
 using namespace Tide;
 
 TideForecast::TideForecast(): WebFactory("tfc",
-                                         "tide-forecast",
+                                         "Tide-Forecast",
                                          "tide-tide-forecast",
-                                         "Tide Times &amp; Time Charts for the World",
+                                         "Tide Times and Time Charts for the World",
                                          "http://www.tide-forecast.com")
 {
     m_BaseUrl = m_Info.info.documentElement().attribute("home");

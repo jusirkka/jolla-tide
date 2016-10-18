@@ -31,13 +31,14 @@ ApplicationWindow {
             Instantiator {
                 model: factoryModel
                 MenuItem {
-                    //% "About %s"
-                    text: qsTrId("tide-about-factory") + " " + model.name
+                    //% "About"
+                    text: qsTrId("tide-about") + " " + model.name
                     onTriggered: {
                         stackView.push({item: Qt.resolvedUrl("AboutFactoryPage.qml"), properties: {
                                                factory: model.index,
                                                name: model.name,
                                                about: model.about,
+                                               logo: model.logo,
                                                home: Qt.resolvedUrl(model.home)
                                            }
                                        }

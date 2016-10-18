@@ -7,24 +7,39 @@ Rectangle {
     property int factory
     property string name
     property string about
+    property string logo
     property url home
+
+    Image {
+        id: logoImage
+        x: Theme.horizontalPageMargin
+        anchors.verticalCenter: nameLabel.verticalCenter
+        source: "icons/" + logo + ".png"
+    }
 
     Label {
         id: nameLabel
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
+        width: parent.width
+        anchors {
+            left: logoImage.right
+            right: parent.right
+            top: parent.top
+        }
         text: name
         horizontalAlignment: Text.AlignRight
-        font.pixelSize: Theme.fontSizeLarge
+        font.pixelSize: Theme.fontSizeHuge
     }
 
     Label {
         id: aboutLabel
+        width: parent.width
         height: parent.height * 0.4
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: nameLabel.bottom
+        wrapMode: Text.Wrap
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: nameLabel.bottom
+        }
         text: about
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -32,9 +47,11 @@ Rectangle {
 
     Button {
         id: homeButton
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: aboutLabel.bottom
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: aboutLabel.bottom
+        }
         text: home.toString()
         onClicked: Qt.openUrlExternally(home)
     }

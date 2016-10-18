@@ -4,6 +4,7 @@ import net.kvanttiapina.tide.theme 1.0
 
 Rectangle {
 
+    height: Math.max(leftColumn.implicitHeight, rightColumn.implicitHeight) + 2*Theme.paddingSmall
 
     MouseArea {
         id: mouseItem
@@ -17,7 +18,7 @@ Rectangle {
 
     Column {
         id: leftColumn
-        width: parent.width / 2
+        width: parent.width / 2 - 2*Theme.paddingMedium
         anchors {
             left: parent.left
             right: rightColumn.left
@@ -33,7 +34,8 @@ Rectangle {
             text: Theme.highlightText(model.name, stationModel.filter, Theme.highlightColor)
             color: mouseItem.highlighted ? Theme.highlightColor : Theme.primaryColor
             font.pixelSize: Theme.fontSizeMedium
-            wrapMode: Text.Wrap
+            // wrapMode: Text.Wrap
+            elide: Text.ElideRight
             width: parent.width
         }
         Label {
@@ -41,14 +43,15 @@ Rectangle {
             color: mouseItem.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
             text: Theme.highlightText(model.detail, stationModel.filter, Theme.secondaryHighlightColor)
             font.pixelSize: Theme.fontSizeSmall
-            wrapMode: Text.Wrap
+            // wrapMode: Text.Wrap
+            elide: Text.ElideRight
             width: parent.width
         }
     }
 
     Column {
         id: rightColumn
-        width: parent.width / 2
+        width: parent.width / 2 - 2*Theme.paddingMedium
         anchors {
             right: parent.right
             left: leftColumn.right

@@ -58,6 +58,10 @@ public:
     // Min Ebb.
     bool isMinCurrentEvent () const;
 
+private:
+
+    QString _description() const;
+
 };
 
 }

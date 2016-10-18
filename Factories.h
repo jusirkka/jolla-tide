@@ -32,6 +32,7 @@ public:
     enum FactoryRoles {
         NameRole = Qt::UserRole + 1,
         AboutRole,
+        LogoRole,
         HomePageRole
     };
 

@@ -25,6 +25,7 @@
 */
 
 #include "Station.h"
+#include "Skycal.h"
 #include <cmath>
 #include <QDebug>
 
@@ -76,7 +77,7 @@ void Station::predictTideEvents(const Timestamp& startTime,
     Timestamp ev_Time;
     TideEvent::Type ev_Type;
     bool isRising;
-    Amplitude zero = m_Constituents->datum() * 0; // zero level with correct units
+    Amplitude zero = m_Constituents->datum().null(); // zero level with correct units
 
 
 
@@ -108,6 +109,11 @@ void Station::predictTideEvents(const Timestamp& startTime,
                 addToOrganizer(organizer, ev_Type, ev_Time);
             }
         }
+    }
+
+    // add events in heavens
+    if (filter == noFilter) {
+        Skycal::AddSunMoonEvents(startTime, endTime, m_Coordinates, organizer);
     }
 }
 

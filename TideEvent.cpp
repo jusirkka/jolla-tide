@@ -68,8 +68,12 @@ bool TideEvent::isMinCurrentEvent () const {
     }
 }
 
-
 QString TideEvent::description () const {
+    if (level.valid()) return _description() + QString(" @%1").arg(level.print());
+    return _description();
+}
+
+QString TideEvent::_description () const {
     switch (type) {
     case TideEvent::max:
         if (isCurrent()) {
