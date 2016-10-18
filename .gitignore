@@ -3,3 +3,16 @@ CMakeLists.txt.user
 jolla-tide.pro.user
 tests
 jolla-tide_en.qm
+icons/tide-first-quarter-moon.png 
+icons/tide-mark-rising.png
+icons/tide-full-moon.png           
+icons/tide-moonrise.png
+icons/tide-high-tide.png           
+icons/tide-moonset.png
+icons/tide-invalid.png             
+icons/tide-new-moon.png
+icons/tide-last-quarter-moon.png   
+icons/tide-sunrise.png
+icons/tide-low-tide.png            
+icons/tide-sunset.png
+icons/tide-mark-falling.png
