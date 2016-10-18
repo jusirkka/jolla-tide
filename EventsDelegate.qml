@@ -4,12 +4,10 @@ import net.kvanttiapina.tide.theme 1.0
 
 Rectangle {
 
-    height: Math.max(dateLabel.implicitHeight, descriptionLabel.implicitHeight, eventIcon.implicitHeight) + 2*Theme.paddingSmall
-
+    height: eventIcon.implicitHeight + 2*Theme.paddingSmall
     Image {
         id: eventIcon
         x: Theme.horizontalPageMargin
-        anchors.verticalCenter: descriptionLabel.verticalCenter
         source: "icons/" + model.icon + ".png"
     }
 
@@ -17,7 +15,6 @@ Rectangle {
         id: descriptionLabel
 
         property real lineHeight: height/lineCount
-        width: parent.width
         color: Theme.secondaryColor
         text: model.description
         font.pixelSize: Theme.fontSizeMedium
@@ -25,7 +22,7 @@ Rectangle {
         wrapMode: Text.Wrap
         anchors {
             left: eventIcon.right
-            right: dateLabel.left
+            verticalCenter: eventIcon.verticalCenter
             leftMargin: Theme.paddingMedium
             rightMargin: Theme.paddingSmall
         }
@@ -34,9 +31,11 @@ Rectangle {
         id: dateLabel
         text: new Date(model.timestamp * 1000).toLocaleString(Qt.locale(), "MMM dd HH:mm")
         font.pixelSize: Theme.fontSizeMedium
+        horizontalAlignment: Text.AlignRight
         anchors {
-            verticalCenter: descriptionLabel.verticalCenter
             right: parent.right
+            left: descriptionLabel.right
+            verticalCenter: descriptionLabel.verticalCenter
             rightMargin: Theme.horizontalPageMargin
         }
     }

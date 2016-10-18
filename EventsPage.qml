@@ -2,16 +2,14 @@ import QtQuick 2.0
 import QtQuick.Controls 1.4
 import net.kvanttiapina.tide.theme 1.0
 
-Item {
+Rectangle {
     width: parent.width
     height: parent.height
 
     ListView {
         id: eventsList
-        height: parent.height * 0.8
-
-        property int oldContent: contentHeight
-        property int newContent: contentHeight
+        height: parent.height * 0.9
+        width: parent.width
 
         anchors {
             left: parent.left
@@ -30,7 +28,6 @@ Item {
         }
 
         function adjustTop(v) {
-            console.log("adjust " + v + " * " + contentHeight)
             contentY = v * contentHeight
         }
 
@@ -43,6 +40,9 @@ Item {
                              console.log("forward")
                              eventsModel.forward()
                          }
+
+        // onContentYChanged: console.log("adjust to " + contentY)
+
     }
 
     Button {
@@ -50,6 +50,7 @@ Item {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
+            top: eventsList.bottom
         }
         text: "Back"
         onClicked: stackView.pop()

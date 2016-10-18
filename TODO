@@ -1,5 +1,3 @@
-- bug: 'log not found in Events.xml'
-- bug: events view: top of images cut in the past 
 - bug: active stations in random order
 - bug: non-persistent marks
 - split to app and update server
