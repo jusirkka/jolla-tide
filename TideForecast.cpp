@@ -63,7 +63,6 @@ void TideForecast::handleDownloaded(ClientProxy* client, QNetworkReply* reply) {
         Status s(Status::ERROR, QString("<error status='%1: unknown request'/>").arg(req));
         client->whenFinished(s);
         delete client;
-        return;
     }
 }
 

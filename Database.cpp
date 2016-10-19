@@ -33,7 +33,8 @@ Database::Database() {
     query.exec("create table if not exists actives ("
                "id integer primary key autoincrement, "
                "station_id integer not null, "
-               "mark text default 'notset')");
+               "mark text default 'notset', "
+               "ordering integer)");
     m_DB.close();
 }
 
@@ -71,22 +72,19 @@ static void exec_and_trace(QSqlQuery& r) {
     if (r.lastError().isValid()) qDebug() << r.lastError();
 }
 
-QHash<QString, QString> Database::ActiveStations(const QString& provider) {
-    QHash<QString, QString> s; // key, mark
-    QSqlQuery r;
-    if (provider.isEmpty()) {
-         r = instance()->exec("select s.fuid, s.suid, a.mark from stations s join actives a on s.id=a.station_id");
-    } else {
-        r = instance()->prepare("select s.fuid, s.suid, a.mark from stations s join actives a on s.id=a.station_id where s.fuid=?");
-        r.bindValue(0, provider);
-        exec_and_trace(r);
-    }
+Database::ActiveList Database::ActiveStations() {
+    QMap<int, Active> s; // ordering, (station, mark)
+    QSqlQuery r = instance()->exec("select s.fuid, s.suid, a.mark, a.ordering from stations s join actives a on s.id=a.station_id");
+    bool ok;
+    int fail_ord = 1000; // some big number
     while (r.next()) {
-        QString key = QString("%1%2%3").arg(r.value(0).toString()).arg(QChar(30)).arg(r.value(1).toString());
-        s[key] = r.value(2).toString();
+        int ord = r.value(3).toInt(&ok);
+        if (!ok) ord = fail_ord++;
+        while (s.contains(ord)) ord = fail_ord++;
+        QString station = QString("%1%2%3").arg(r.value(0).toString()).arg(QChar(30)).arg(r.value(1).toString());
+        s[ord] = Active(station, r.value(2).toString());
     }
-    instance()->close();
-    return s;
+    return s.values();
 }
 
 QHash<QString, QString> Database::AllStations(const QString& provider) {
@@ -110,37 +108,43 @@ QHash<QString, QString> Database::AllStations(const QString& provider) {
     return s;
 }
 
-void Database::Activate(const QString& station, const QString& mark) {
-    QSqlQuery r;
-    QStringList parts = station.split(QChar::fromLatin1(30));
-    r = instance()->prepare("select id from stations where fuid=? and suid=?");
-    r.bindValue(0, parts[0]);
-    r.bindValue(1, parts[1]);
-    exec_and_trace(r);
-    if (!r.next()) {
-        return;
+void Database::OrderActives(const QStringList& ordering) {
+    ActiveList actives = ActiveStations();
+    QStringList stations;
+    foreach (Active ac, actives) {
+        stations << ac.station;
     }
-    int station_id = r.value(0).toInt();
-    r = instance()->prepare("select id from actives where station_id=?");
-    r.bindValue(0, station_id);
-    exec_and_trace(r);
-    if (r.next()) {
-        r = instance()->prepare("update actives set mark = ? where station_id = ?");
-        r.bindValue(0, mark);
-        r.bindValue(1, station_id);
-    } else {
-        r = instance()->prepare("insert into actives (station_id, mark) values (?, ?)");
+
+    instance()->exec("delete from actives");
+
+    Transaction();
+
+    for (int ord = 0; ord < ordering.size(); ord++) {
+        QString mark("notset");
+        QString station = ordering[ord];
+        if (stations.contains(station)) mark = actives[stations.indexOf(station)].mark;
+        QStringList parts = station.split(QChar::fromLatin1(30));
+        QSqlQuery r = instance()->prepare("select id from stations where fuid=? and suid=?");
+        r.bindValue(0, parts[0]);
+        r.bindValue(1, parts[1]);
+        exec_and_trace(r);
+        if (!r.next()) {
+            continue;
+        }
+        int station_id = r.value(0).toInt();
+        r = instance()->prepare("insert into actives (station_id, mark, ordering) values (?, ?, ?)");
         r.bindValue(0, station_id);
         r.bindValue(1, mark);
+        r.bindValue(2, ord);
+        exec_and_trace(r);
     }
-    exec_and_trace(r);
-    instance()->close();
+
+    Commit();
 }
 
-void Database::Deactivate(const QString& station) {
-    QSqlQuery r;
+void Database::SetMark(const QString& station, const QString& mark) {
     QStringList parts = station.split(QChar::fromLatin1(30));
-    r = instance()->prepare("select id from stations where fuid=? and suid=?");
+    QSqlQuery r = instance()->prepare("select id from stations where fuid=? and suid=?");
     r.bindValue(0, parts[0]);
     r.bindValue(1, parts[1]);
     exec_and_trace(r);
@@ -148,11 +152,12 @@ void Database::Deactivate(const QString& station) {
         return;
     }
     int station_id = r.value(0).toInt();
-    r = instance()->prepare("delete from actives where station_id=?");
-    r.bindValue(0, station_id);
+    r = instance()->prepare("update actives set mark=? where station_id=?");
+    r.bindValue(0, mark);
+    r.bindValue(1, station_id);
     exec_and_trace(r);
-    instance()->close();
 }
+
 
 int Database::StationID(const QString& station) {
     QSqlQuery r;

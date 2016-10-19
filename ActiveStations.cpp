@@ -12,14 +12,18 @@ Tide::ActiveStations::ActiveStations(StationProvider* parent):
     QAbstractListModel(parent),
     m_Parent(parent)
 {
-    QHashIterator<QString, QString> ac(Database::ActiveStations());
-    while (ac.hasNext()) {
-        ac.next();
-        m_Marks[ac.key()] = Amplitude::parseDottedMeters(ac.value());
-        append(ac.key());
+    Database::ActiveList acs = Database::ActiveStations();
+    foreach (Database::Active ac, acs) {
+        m_Marks[ac.station] = Amplitude::parseDottedMeters(ac.mark);
+        m_Stations.append(ac.station);
+        Data d;
+        d.recompute = new QTimer(this);
+        d.recompute->setSingleShot(true);
+        connect(d.recompute, SIGNAL(timeout()), this, SLOT(computeNextEvent()));
+        m_Events[ac.station] = d;
     }
+    computeNextEvent();
     connect(m_Parent, SIGNAL(stationChanged(const QString&)), this, SLOT(stationChanged(const QString&)));
-
 }
 
 
@@ -84,10 +88,10 @@ QHash<int, QByteArray> Tide::ActiveStations::roleNames() const {
 
 
 void Tide::ActiveStations::append(const QString& station) {
-    Database::Activate(station);
     int row = m_Stations.size();
     beginInsertRows(QModelIndex(), row, row);
     m_Stations.append(station);
+    Database::OrderActives(m_Stations);
     Data d;
     d.recompute = new QTimer(this);
     d.recompute->setSingleShot(true);
@@ -159,8 +163,8 @@ bool Tide::ActiveStations::removeRows(int row, int count, const QModelIndex& par
 }
 
 void Tide::ActiveStations::remove(int row) {
-    Database::Deactivate(m_Stations[row]);
     removeRows(row, 1);
+    Database::OrderActives(m_Stations);
 }
 
 void Tide::ActiveStations::movetotop(int row) {
@@ -179,6 +183,7 @@ void Tide::ActiveStations::movetotop(int row) {
     computeNextEvent();
     endInsertRows();
     emit dataChanged(index(0), index(m_Stations.size() - 1));
+    Database::OrderActives(m_Stations);
 }
 
 
@@ -193,6 +198,6 @@ void Tide::ActiveStations::showpoints(int row) {
 void Tide::ActiveStations::setmark(int row, const QString& mark) {
     QString key = m_Stations[row];
     m_Marks[key] = Amplitude::parseDottedMeters(mark);
-    Database::Activate(key, m_Marks[key].print());
+    Database::SetMark(key, m_Marks[key].print());
     stationChanged(key);
 }

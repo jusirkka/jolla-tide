@@ -12,15 +12,29 @@ class Database {
 
 public:
 
-    static QHash<QString, QString> ActiveStations(const QString& provider = QString());
+    class Active {
+    public:
+        Active(const QString& s = QString(), const QString& m = QString()): station(s), mark(m) {}
+        QString station;
+        QString mark;
+    };
+
+    typedef QList<Active> ActiveList;
+
+    // table actives
+    static ActiveList ActiveStations();
+    static void OrderActives(const QStringList& ordering);
+    static void SetMark(const QString& station, const QString& mark);
+
+    // table stations
     static QHash<QString, QString> AllStations(const QString& provider = QString());
-    static void Activate(const QString& station, const QString& mark = "notset");
-    static void Deactivate(const QString& station);
     static int StationID(const QString& station);
     static QString StationInfo(const QString& station, const QString& attr);
     static void UpdateStationInfo(const QString& provider, const QString& station, const QString& xmlinfo);
+
     static void Control(const QString& sql, const QVariantList& vars = QVariantList());
     static QList<QVector<QVariant>> Query(const QString& sql, const QVariantList& vars = QVariantList());
+
 
     static bool Transaction();
     static bool Commit();
