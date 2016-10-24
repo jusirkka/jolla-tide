@@ -110,6 +110,7 @@ const Station& WebFactory::instance(const QString& key) {
 
 bool WebFactory::updateNeeded(const QString& key) {
     if (m_LastDataPoint.contains(key) && m_LastDataPoint[key] > Timestamp::now()) {
+        // TODO update if last datapoint is e.g. less than two days in future (days from config)
         // qDebug() << "updateNeeded: last = " << m_LastDataPoint[key].posix();
         return false;
     }
@@ -128,6 +129,8 @@ bool WebFactory::updateNeeded(const QString& key) {
     qDebug() << "updateNeeded: updating" << key;
     return true;
 }
+
+
 
 
 void WebFactory::update(const QString& key, ClientProxy* client) {
@@ -195,6 +198,17 @@ void WebFactory::updateStationInfo(const QString& attr, const QString& key, Clie
     m_DLManager->get(QNetworkRequest(req));
 }
 
+
+void WebFactory::reset() {
+    QHashIterator<QString, Station*> st(m_Loaded);
+    while (st.hasNext()) {
+        st.next();
+        delete st.value();
+    }
+
+    m_Loaded.clear();
+    m_LastDataPoint.clear();
+}
 
 void WebFactory::updateAvailable(ClientProxy* client) {
     QString req = availUrl();

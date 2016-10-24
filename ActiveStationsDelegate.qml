@@ -5,7 +5,6 @@ import net.kvanttiapina.tide.theme 1.0
 Rectangle {
 
     height: Math.max(labelColumn.implicitHeight, dateLabel.implicitHeight, eventIcon.implicitHeight) + 2*Theme.paddingSmall
-
     MouseArea {
         id: mus
         enabled: model.icon !== "tide-invalid"

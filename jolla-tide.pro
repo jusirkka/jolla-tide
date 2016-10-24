@@ -1,6 +1,7 @@
 TEMPLATE = app
 
-QT += qml quick sql xml widgets
+QT += qml quick sql xml widgets dbus
+DBUS_INTERFACES += stationupdater.xml
 CONFIG += c++11
 TRANSLATIONS += jolla-tide_en.ts
 

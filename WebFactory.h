@@ -25,6 +25,7 @@ public:
     bool updateNeeded(const QString& key);
     void updateAvailable(ClientProxy* client);
     void updateStationInfo(const QString& attr, const QString& key, ClientProxy* client);
+    void reset();
 
     ~WebFactory();
 

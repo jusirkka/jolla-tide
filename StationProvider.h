@@ -4,8 +4,7 @@
 #include <QAbstractListModel>
 #include <QtXml/QDomDocument>
 #include "Factories.h"
-
-
+#include "stationupdater_interface.h"
 
 namespace Tide {
 
@@ -70,15 +69,20 @@ public:
     Q_INVOKABLE QString provider(const QString& station);
     Q_INVOKABLE QString providerlogo(const QString& station);
 
+    void stationUpdate() const;
+
 
 public slots:
 
     void resetVisible(const QString& factory);
+    void stationUpdateReady();
+
 
 signals:
 
     void filterChanged(const QString& filter);
     void stationChanged(const QString& key);
+    void stationReset();
 
 private:
 
@@ -86,6 +90,7 @@ private:
     Factories* m_Factories;
     QString m_Filter;
     Station m_Invalid;
+    Update::Manager* m_Updater;
 
     friend class StationUpdateHandler;
 

@@ -24,6 +24,7 @@ Tide::ActiveStations::ActiveStations(StationProvider* parent):
     }
     computeNextEvent();
     connect(m_Parent, SIGNAL(stationChanged(const QString&)), this, SLOT(stationChanged(const QString&)));
+    connect(m_Parent, SIGNAL(stationReset()), this, SLOT(computeNextEvent()));
 }
 
 
@@ -99,6 +100,8 @@ void Tide::ActiveStations::append(const QString& station) {
     m_Events[station] = d;
     computeNextEvent();
     endInsertRows();
+    // request update from parent
+    m_Parent->stationUpdate();
 }
 
 void Tide::ActiveStations::computeNextEvent() {

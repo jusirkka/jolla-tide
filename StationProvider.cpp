@@ -37,6 +37,9 @@ Tide::StationProvider::StationProvider(Factories* factories, QObject* parent):
 {
     connect(m_Factories, SIGNAL(availableChanged(const QString&)), this, SLOT(resetVisible(const QString&)));
 
+    m_Updater = new Update::Manager("net.kvanttiapina.tide", "/Manager", QDBusConnection::sessionBus(), this);
+    connect(m_Updater, SIGNAL(ready()), this, SLOT(stationUpdateReady()));
+
     for (int row = 0; row < m_Factories->rowCount(QModelIndex()); ++row) {
         StationFactory* factory = m_Factories->instance(row);
         QString fkey = factory->info().key;
@@ -126,11 +129,7 @@ const Tide::Station& Tide::StationProvider::station(const QString& key) {
     QStringList parts = key.split(QChar::fromLatin1(30));
     StationFactory* factory = m_Factories->instance(parts[0]);
     if (!factory) return m_Invalid;
-    const Station& s = factory->instance(parts[1]);
-    if (factory->updateNeeded(parts[1])) {
-        factory->update(parts[1], new StationUpdateHandler(this, key));
-    }
-    return s;
+    return factory->instance(parts[1]);
 }
 
 
@@ -228,6 +227,18 @@ QString Tide::StationProvider::providerlogo(const QString& key) {
     StationFactory* factory = m_Factories->instance(parts[0]);
     QDomElement f = factory->info().info.documentElement();
     return f.attribute("logo");
+}
+
+void Tide::StationProvider::stationUpdate() const {
+    m_Updater->sync();
+}
+
+void Tide::StationProvider::stationUpdateReady() {
+    for (int row = 0; row < m_Factories->rowCount(QModelIndex()); ++row) {
+        StationFactory* factory = m_Factories->instance(row);
+        factory->reset();
+    }
+    emit stationReset();
 }
 
 
