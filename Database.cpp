@@ -14,14 +14,13 @@ using namespace Tide;
 Database::Database() {
 
     m_DB = QSqlDatabase::addDatabase("QSQLITE");
-    QString dbfile = QStandardPaths::locate(QStandardPaths::AppLocalDataLocation, "tides.db");
-    if (dbfile.isEmpty()) {
-        QString loc = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-        if (!QDir(loc).exists()) {
-            QDir().mkpath(loc);
-        }
-        dbfile = QString("%1/tides.db").arg(loc);
+    // ~/.local/share
+    QString loc = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    loc = QString("%1/jolla-tide").arg(loc);
+    if (!QDir(loc).exists()) {
+        QDir().mkpath(loc);
     }
+    QString dbfile = QString("%1/tides.db").arg(loc);
     m_DB.setDatabaseName(dbfile);
     m_DB.open();
     QSqlQuery query;

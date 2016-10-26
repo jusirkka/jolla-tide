@@ -3,6 +3,6 @@
 <node name="/net/kvanttiapina/jolla_tide">
     <interface name="Tide.Update.Manager">
         <method name="sync"/>
-	<signal name="ready"/>
+        <signal name="ready"/>
     </interface>
 </node>

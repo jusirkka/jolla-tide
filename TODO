@@ -1,3 +1,3 @@
-- split to app and update server
+- split resource files
+- apply Address class everywhere
 - bug: inconsistent ConstituentSet calculation
-- bug: double dl of updates: 'Epoch already present'

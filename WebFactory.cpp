@@ -109,20 +109,24 @@ const Station& WebFactory::instance(const QString& key) {
 
 
 bool WebFactory::updateNeeded(const QString& key) {
-    if (m_LastDataPoint.contains(key) && m_LastDataPoint[key] > Timestamp::now()) {
-        // TODO update if last datapoint is e.g. less than two days in future (days from config)
-        // qDebug() << "updateNeeded: last = " << m_LastDataPoint[key].posix();
+    if (!m_Available.contains(key)) {
+        // qDebug() << "updateNeeded false: not available" << key;
+        return false;
+    }
+    if (!instance(key).isvalid()) {
+        qDebug() << "updateNeeded true: not active" << key;
+        return true;
+    }
+
+    if (m_LastDataPoint.contains(key) && m_LastDataPoint[key] > Timestamp::now() + Interval::fromSeconds(2*24*3600)) {
+        qDebug() << "updateNeeded false: last = " << m_LastDataPoint[key].posix();
         return false;
     }
 
-    if (!m_Available.contains(key)) {
-        // qDebug() << "updateNeeded: not available" << key;
-        return false; // or true?
-    }
 
     QString req = stationUrl(key);
     if (m_Pending.contains(req)) {
-        // qDebug() << "updateNeeded: already active" << key;
+        qDebug() << "updateNeeded false: already active" << key;
         return false;
     }
 
@@ -134,12 +138,6 @@ bool WebFactory::updateNeeded(const QString& key) {
 
 
 void WebFactory::update(const QString& key, ClientProxy* client) {
-    if (m_LastDataPoint.contains(key) && m_LastDataPoint[key] > Timestamp::now()) {
-        Status s;
-        client->whenFinished(s);
-        delete client;
-        return;
-    }
     if (!m_Available.contains(key)) {
         Status s(Status::ERROR, "<error status='Not available'/>");
         client->whenFinished(s);

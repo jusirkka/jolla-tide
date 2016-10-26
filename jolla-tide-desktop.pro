@@ -5,7 +5,7 @@ DBUS_INTERFACES += stationupdater.xml
 CONFIG += c++11
 TRANSLATIONS += jolla-tide_en.ts
 
-SOURCES += main.cpp StationProvider.cpp Station.cpp Angle.cpp Amplitude.cpp Coordinates.cpp Interval.cpp  \
+SOURCES += desktop-app.cpp StationProvider.cpp Station.cpp Angle.cpp Amplitude.cpp Coordinates.cpp Interval.cpp  \
     TideEvent.cpp Timestamp.cpp Speed.cpp Year.cpp RunningSet.cpp ActiveStations.cpp Events.cpp Complex.cpp HarmonicsCreator.cpp \
     Database.cpp WebFactory.cpp TideForecast.cpp Skycal.cpp PointsWindow.cpp Factories.cpp
 

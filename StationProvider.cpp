@@ -37,7 +37,7 @@ Tide::StationProvider::StationProvider(Factories* factories, QObject* parent):
 {
     connect(m_Factories, SIGNAL(availableChanged(const QString&)), this, SLOT(resetVisible(const QString&)));
 
-    m_Updater = new Update::Manager("net.kvanttiapina.tide", "/Manager", QDBusConnection::sessionBus(), this);
+    m_Updater = new Update::Manager("net.kvanttiapina.tide", "/Updater", QDBusConnection::sessionBus(), this);
     connect(m_Updater, SIGNAL(ready()), this, SLOT(stationUpdateReady()));
 
     for (int row = 0; row < m_Factories->rowCount(QModelIndex()); ++row) {
