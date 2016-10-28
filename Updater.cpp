@@ -38,7 +38,7 @@ Updater::Updater(const QList<StationFactory*>& factories, QObject* parent):
         }
     }
     m_Long = new QTimer(this);
-    m_Long->setInterval(1000*3600);
+    m_Long->setInterval(1000*3600*6);
     connect(m_Long, SIGNAL(timeout()), this, SLOT(sync()));
     m_Long->start();
     m_Short = new QTimer(this);

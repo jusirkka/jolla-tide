@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
         <file>congen_input.txt</file>
-        <file>jolla-tide_en.qm</file>
     </qresource>
 </RCC>

@@ -21,7 +21,7 @@ HEADERS += Amplitude.h ConstituentSet.h Speed.h StationProvider.h Year.h Angle.h
 
 DEFINES += QT_STATICPLUGIN
 
-RESOURCES += qml.qrc resources.qrc
+RESOURCES += desktop-qml.qrc harmonics.qrc translations.qrc icons.qrc
 
 LIBS += -lxml2 -lqwt6-qt5 -lfftw3
 

@@ -1,0 +1,18 @@
+<RCC>
+    <qresource>
+        <file>icons/tide-first-quarter-moon.png</file>
+	<file>icons/tide-full-moon.png</file>
+	<file>icons/tide-high-tide.png</file>
+	<file>icons/tide-invalid.png</file>
+	<file>icons/tide-last-quarter-moon.png</file>
+	<file>icons/tide-low-tide.png</file>
+	<file>icons/tide-mark-falling.png</file>
+	<file>icons/tide-mark-rising.png</file>
+	<file>icons/tide-moonrise.png</file>
+	<file>icons/tide-moonset.png</file>
+	<file>icons/tide-new-moon.png</file>
+	<file>icons/tide-sunrise.png</file>
+	<file>icons/tide-sunset.png</file>
+	<file>icons/tide-tide-forecast.png</file>
+    </qresource>
+</RCC>

@@ -13,7 +13,6 @@ Q_IMPORT_PLUGIN(TideForecast)
 
 int main(int argc, char *argv[])
 {
-    Q_INIT_RESOURCE(resources);
     QCoreApplication app(argc, argv);
 
     QList<Tide::StationFactory*> factories;

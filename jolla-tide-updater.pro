@@ -14,7 +14,7 @@ HEADERS += Amplitude.h ConstituentSet.h Speed.h Year.h Angle.h Coordinates.h Sta
 
 DEFINES += QT_STATICPLUGIN
 
-RESOURCES += resources.qrc
+RESOURCES += harmonics.qrc
 
 LIBS += -lxml2
 

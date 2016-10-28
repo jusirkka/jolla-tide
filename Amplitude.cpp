@@ -145,5 +145,5 @@ QString Amplitude::print() const {
     }
 
 
-    return QString("%1 %2/%3").arg(value).arg(m).arg(s);
+    return QString("%1 %2/%3").arg(value, 0, 'f', 1).arg(m).arg(s);
 }

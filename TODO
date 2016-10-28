@@ -1,3 +1,2 @@
-- split resource files
 - apply Address class everywhere
 - bug: inconsistent ConstituentSet calculation

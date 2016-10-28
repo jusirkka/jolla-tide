@@ -17,7 +17,6 @@ Q_IMPORT_PLUGIN(TideForecast)
 
 int main(int argc, char *argv[])
 {
-    Q_INIT_RESOURCE(resources);
     QApplication app(argc, argv);
 
     QTranslator translator;
