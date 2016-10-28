@@ -34,7 +34,7 @@ Updater::Updater(const QList<StationFactory*>& factories, QObject* parent):
         QString fkey = factory->info().key;
         m_Factories[fkey] = factory;
         if (factory->available().isEmpty()) {
-            factory->updateAvailable(new UpdaterProxy(this, Address(fkey, "")));
+            factory->updateAvailable(new UpdaterProxy(this, Address(fkey)));
         }
     }
     m_Long = new QTimer(this);
@@ -60,9 +60,8 @@ void Updater::sync() {
     m_Pending.clear();
     Database::ActiveList actives = Database::ActiveStations();
     foreach (Database::Active ac, actives) {
-        Address addr(ac.station);
-        if (m_Factories[addr.factory]->updateNeeded(addr.station)) {
-            m_Pending.append(addr);
+        if (m_Factories[ac.address.factory]->updateNeeded(ac.address.station)) {
+            m_Pending.append(ac.address);
         }
     }
 
@@ -98,6 +97,3 @@ void Updater::updated(const Address &address, const Status &status) {
 
 }
 
-bool (Tide::operator==) (const Address& a, const Address& b) {
-    return a.factory == b.factory && a.station == b.station;
-}

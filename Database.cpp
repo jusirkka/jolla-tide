@@ -6,8 +6,11 @@
 #include <QDebug>
 #include <QtXml/QDomDocument>
 
-
 #include "Database.h"
+
+uint qHash(const Tide::Address& addr) {
+    return qHash(addr.key());
+}
 
 using namespace Tide;
 
@@ -80,38 +83,38 @@ Database::ActiveList Database::ActiveStations() {
         int ord = r.value(3).toInt(&ok);
         if (!ok) ord = fail_ord++;
         while (s.contains(ord)) ord = fail_ord++;
-        QString station = QString("%1%2%3").arg(r.value(0).toString()).arg(QChar(30)).arg(r.value(1).toString());
-        s[ord] = Active(station, r.value(2).toString());
+        s[ord] = Active(Address(r.value(0).toString(), r.value(1).toString()), r.value(2).toString());
     }
     return s.values();
 }
 
-QHash<QString, QString> Database::AllStations(const QString& provider) {
-    QHash<QString, QString> s;
+QHash<Address, QString> Database::AllStations(const QString& provider) {
+    QHash<Address, QString> s;
     QSqlQuery r;
     if (provider.isEmpty()) {
         r = instance()->exec("select fuid, suid, xmlinfo from stations");
         while (r.next()) {
-            QString key = QString("%1%2%3").arg(r.value(0).toString()).arg(QChar(30)).arg(r.value(1).toString());
-            s[key] = r.value(2).toString();
+            Address addr(r.value(0).toString(), r.value(1).toString());
+            s[addr] = r.value(2).toString();
         }
     } else {
         r = instance()->prepare("select suid, xmlinfo from stations where fuid=?");
         r.bindValue(0, provider);
         exec_and_trace(r);
         while (r.next()) {
-            s[r.value(0).toString()] = r.value(1).toString();
+            Address addr(provider, r.value(0).toString());
+            s[addr] = r.value(1).toString();
         }
     }
     instance()->close();
     return s;
 }
 
-void Database::OrderActives(const QStringList& ordering) {
+void Database::OrderActives(const QList<Address>& ordering) {
     ActiveList actives = ActiveStations();
-    QStringList stations;
+    QList<Address> stations;
     foreach (Active ac, actives) {
-        stations << ac.station;
+        stations.append(ac.address);
     }
 
     instance()->exec("delete from actives");
@@ -120,12 +123,11 @@ void Database::OrderActives(const QStringList& ordering) {
 
     for (int ord = 0; ord < ordering.size(); ord++) {
         QString mark("notset");
-        QString station = ordering[ord];
+        Address station = ordering[ord];
         if (stations.contains(station)) mark = actives[stations.indexOf(station)].mark;
-        QStringList parts = station.split(QChar::fromLatin1(30));
         QSqlQuery r = instance()->prepare("select id from stations where fuid=? and suid=?");
-        r.bindValue(0, parts[0]);
-        r.bindValue(1, parts[1]);
+        r.bindValue(0, station.factory);
+        r.bindValue(1, station.station);
         exec_and_trace(r);
         if (!r.next()) {
             continue;
@@ -141,11 +143,10 @@ void Database::OrderActives(const QStringList& ordering) {
     Commit();
 }
 
-void Database::SetMark(const QString& station, const QString& mark) {
-    QStringList parts = station.split(QChar::fromLatin1(30));
+void Database::SetMark(const Address& addr, const QString& mark) {
     QSqlQuery r = instance()->prepare("select id from stations where fuid=? and suid=?");
-    r.bindValue(0, parts[0]);
-    r.bindValue(1, parts[1]);
+    r.bindValue(0, addr.factory);
+    r.bindValue(1, addr.station);
     exec_and_trace(r);
     if (!r.next()) {
         return;
@@ -158,12 +159,11 @@ void Database::SetMark(const QString& station, const QString& mark) {
 }
 
 
-int Database::StationID(const QString& station) {
+int Database::StationID(const Address& addr) {
     QSqlQuery r;
-    QStringList parts = station.split(QChar::fromLatin1(30));
     r = instance()->prepare("select id from stations where fuid=? and suid=?");
-    r.bindValue(0, parts[0]);
-    r.bindValue(1, parts[1]);
+    r.bindValue(0, addr.factory);
+    r.bindValue(1, addr.station);
     exec_and_trace(r);
     if (!r.next()) {
         return 0;
@@ -171,12 +171,11 @@ int Database::StationID(const QString& station) {
     return r.value(0).toInt();
 }
 
-QString Database::StationInfo(const QString& station, const QString& attr) {
+QString Database::StationInfo(const Address& addr, const QString& attr) {
     QSqlQuery r;
-    QStringList parts = station.split(QChar::fromLatin1(30));
     r = instance()->prepare("select xmlinfo from stations where fuid=? and suid=?");
-    r.bindValue(0, parts[0]);
-    r.bindValue(1, parts[1]);
+    r.bindValue(0, addr.factory);
+    r.bindValue(1, addr.station);
     exec_and_trace(r);
     if (!r.next()) {
         return QString();
@@ -184,7 +183,7 @@ QString Database::StationInfo(const QString& station, const QString& attr) {
     QString errMsg;
     int erow;
     int ecol;
-    QDomDocument doc(station);
+    QDomDocument doc(addr.station);
     doc.setContent(r.value(0).toString(), &errMsg, &erow, &ecol);
     if (!errMsg.isEmpty()) {
         qDebug() << errMsg << erow << ecol;
@@ -193,12 +192,12 @@ QString Database::StationInfo(const QString& station, const QString& attr) {
     return doc.documentElement().attribute(attr);
 }
 
-void Database::UpdateStationInfo(const QString& provider, const QString& station, const QString& xmlinfo) {
+void Database::UpdateStationInfo(const Address& addr, const QString& xmlinfo) {
     QSqlQuery r;
 
     r = instance()->prepare("select id from stations where fuid=? and suid=?");
-    r.bindValue(0, provider);
-    r.bindValue(1, station);
+    r.bindValue(0, addr.factory);
+    r.bindValue(1, addr.station);
     exec_and_trace(r);
     if (r.next()) {
         int station_id = r.value(0).toInt();
@@ -207,8 +206,8 @@ void Database::UpdateStationInfo(const QString& provider, const QString& station
         r.bindValue(1, station_id);
     } else {
         r = instance()->prepare("insert into stations (fuid, suid, xmlinfo) values (?, ?, ?)");
-        r.bindValue(0, provider);
-        r.bindValue(1, station);
+        r.bindValue(0, addr.factory);
+        r.bindValue(1, addr.station);
         r.bindValue(2, xmlinfo);
     }
     exec_and_trace(r);

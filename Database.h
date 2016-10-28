@@ -3,8 +3,9 @@
 
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlQuery>
-#include <QHash>
 #include <QVariantList>
+
+#include "Address.h"
 
 namespace Tide {
 
@@ -14,8 +15,8 @@ public:
 
     class Active {
     public:
-        Active(const QString& s = QString(), const QString& m = QString()): station(s), mark(m) {}
-        QString station;
+        Active(const Address& a = Address(), const QString& m = QString()): address(a), mark(m) {}
+        Address address;
         QString mark;
     };
 
@@ -23,14 +24,14 @@ public:
 
     // table actives
     static ActiveList ActiveStations();
-    static void OrderActives(const QStringList& ordering);
-    static void SetMark(const QString& station, const QString& mark);
+    static void OrderActives(const Address::AddressList& ordering);
+    static void SetMark(const Address& station, const QString& mark);
 
     // table stations
-    static QHash<QString, QString> AllStations(const QString& provider = QString());
-    static int StationID(const QString& station);
-    static QString StationInfo(const QString& station, const QString& attr);
-    static void UpdateStationInfo(const QString& provider, const QString& station, const QString& xmlinfo);
+    static QHash<Address, QString> AllStations(const QString& provider = QString());
+    static int StationID(const Address& station);
+    static QString StationInfo(const Address& station, const QString& attr);
+    static void UpdateStationInfo(const Address& provider, const QString& xmlinfo);
 
     static void Control(const QString& sql, const QVariantList& vars = QVariantList());
     static QList<QVector<QVariant>> Query(const QString& sql, const QVariantList& vars = QVariantList());

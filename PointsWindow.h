@@ -7,6 +7,7 @@
 #include <qwt_plot_scaleitem.h>
 
 #include "Timestamp.h"
+#include "Address.h"
 
 namespace Tide {
 
@@ -40,7 +41,7 @@ public:
 class PointsWindow : public QStackedWidget {
 public:
 
-    PointsWindow(const QString& key, const Station& station);
+    PointsWindow(const Address& address, const Station& station);
 
 protected:
 

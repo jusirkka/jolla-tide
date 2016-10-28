@@ -2,27 +2,14 @@
 #define TIDE_UPDATER_H
 
 #include <QObject>
-#include "StationFactory.h"
 #include <QTimer>
+#include "StationFactory.h"
+#include "Address.h"
 
 namespace Tide {
 
 class Updater;
 
-class Address {
-public:
-    Address(const QString& key = QString()) {
-        QStringList parts = key.split(QChar::fromLatin1(30));
-        if (parts.length() == 2) {
-            factory = parts[0];
-            station = parts[1];
-        }
-    }
-    Address(const QString& f, const QString& s): factory(f), station(s) {}
-
-    QString factory;
-    QString station;
-};
 
 class UpdaterProxy: public ClientProxy {
 public:

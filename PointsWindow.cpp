@@ -22,7 +22,7 @@ using namespace Tide;
 
 class ReadingsIterator {
 public:
-    ReadingsIterator(const QString& key, const Station* s);
+    ReadingsIterator(const Address& addr, const Station* s);
     bool next();
     Timestamp stamp();
     double reading();
@@ -48,11 +48,11 @@ private:
 };
 
 
-ReadingsIterator::ReadingsIterator(const QString &key, const Station* s):
+ReadingsIterator::ReadingsIterator(const Address &addr, const Station* s):
     m_Station(s),
     m_CurrentPatch(0) {
 
-    int station_id = Database::StationID(key);
+    int station_id = Database::StationID(addr);
 
     QList<QVector<QVariant>> r;
     QVariantList vars;
@@ -125,7 +125,7 @@ double ReadingsIterator::reading() {
 }
 
 
-PointsWindow::PointsWindow(const QString& key, const Station& station):
+PointsWindow::PointsWindow(const Address& addr, const Station& station):
     QStackedWidget()
 {
 
@@ -133,7 +133,7 @@ PointsWindow::PointsWindow(const QString& key, const Station& station):
     QVector<double> gen;
     QVector<Timestamp> stamps;
 
-    ReadingsIterator points(key, &station);
+    ReadingsIterator points(addr, &station);
     while (points.next()) {
         stamps.append(points.stamp());
         orig.append(points.reading());
@@ -144,7 +144,7 @@ PointsWindow::PointsWindow(const QString& key, const Station& station):
         gen.append(v.value);
     }
 
-    QString stationName = Database::StationInfo(key, "name");
+    QString stationName = Database::StationInfo(addr, "name");
 
     addWidget(new TimeDomain(stationName, stamps, orig, gen));
     addWidget(new FrequencyDomain(stationName, stamps, orig, gen));

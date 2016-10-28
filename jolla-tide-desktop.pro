@@ -7,7 +7,7 @@ TRANSLATIONS += jolla-tide_en.ts
 
 SOURCES += desktop-app.cpp StationProvider.cpp Station.cpp Angle.cpp Amplitude.cpp Coordinates.cpp Interval.cpp  \
     TideEvent.cpp Timestamp.cpp Speed.cpp Year.cpp RunningSet.cpp ActiveStations.cpp Events.cpp Complex.cpp HarmonicsCreator.cpp \
-    Database.cpp WebFactory.cpp TideForecast.cpp Skycal.cpp PointsWindow.cpp Factories.cpp
+    Database.cpp WebFactory.cpp TideForecast.cpp Skycal.cpp PointsWindow.cpp Factories.cpp Address.cpp
 
 lupdate_only {
     SOURCES += AboutFactoryPage.qml EventsDelegate.qml MainPage.qml StationSearchPage.qml tide.qml \
@@ -17,7 +17,7 @@ lupdate_only {
 
 HEADERS += Amplitude.h ConstituentSet.h Speed.h StationProvider.h Year.h Angle.h Coordinates.h Station.h \
     TideEvent.h Interval.h StationFactory.h Timestamp.h RunningSet.h ActiveStations.h Events.h HarmonicsCreator.h Complex.h \
-    Database.h WebFactory.h TideForecast.h Skycal.h PointsWindow.h Factories.h
+    Database.h WebFactory.h TideForecast.h Skycal.h PointsWindow.h Factories.h Address.h
 
 DEFINES += QT_STATICPLUGIN
 

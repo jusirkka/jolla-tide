@@ -14,13 +14,14 @@ Tide::ActiveStations::ActiveStations(StationProvider* parent):
 {
     Database::ActiveList acs = Database::ActiveStations();
     foreach (Database::Active ac, acs) {
-        m_Marks[ac.station] = Amplitude::parseDottedMeters(ac.mark);
-        m_Stations.append(ac.station);
+        QString key = ac.address.key();
+        m_Marks[key] = Amplitude::parseDottedMeters(ac.mark);
+        m_Stations.append(key);
         Data d;
         d.recompute = new QTimer(this);
         d.recompute->setSingleShot(true);
         connect(d.recompute, SIGNAL(timeout()), this, SLOT(computeNextEvent()));
-        m_Events[ac.station] = d;
+        m_Events[key] = d;
     }
     computeNextEvent();
     connect(m_Parent, SIGNAL(stationChanged(const QString&)), this, SLOT(stationChanged(const QString&)));
@@ -92,7 +93,7 @@ void Tide::ActiveStations::append(const QString& station) {
     int row = m_Stations.size();
     beginInsertRows(QModelIndex(), row, row);
     m_Stations.append(station);
-    Database::OrderActives(m_Stations);
+    Database::OrderActives(Address::fromKeys(m_Stations));
     Data d;
     d.recompute = new QTimer(this);
     d.recompute->setSingleShot(true);
@@ -167,7 +168,7 @@ bool Tide::ActiveStations::removeRows(int row, int count, const QModelIndex& par
 
 void Tide::ActiveStations::remove(int row) {
     removeRows(row, 1);
-    Database::OrderActives(m_Stations);
+    Database::OrderActives(Address::fromKeys(m_Stations));
 }
 
 void Tide::ActiveStations::movetotop(int row) {
@@ -186,14 +187,14 @@ void Tide::ActiveStations::movetotop(int row) {
     computeNextEvent();
     endInsertRows();
     emit dataChanged(index(0), index(m_Stations.size() - 1));
-    Database::OrderActives(m_Stations);
+    Database::OrderActives(Address::fromKeys(m_Stations));
 }
 
 
 void Tide::ActiveStations::showpoints(int row) {
     QString key = m_Stations[row];
     const Station& s = m_Parent->station(key);
-    PointsWindow* w = new PointsWindow(key, s);
+    PointsWindow* w = new PointsWindow(Address::fromKey(key), s);
     w->resize(1600, 800);
     w->show();
 }

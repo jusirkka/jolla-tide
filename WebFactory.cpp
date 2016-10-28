@@ -60,10 +60,10 @@ const StationFactoryInfo& WebFactory::info() {
 
 const QHash<QString, StationInfo>& WebFactory::available() {
     if (m_Available.isEmpty()) {
-        QHashIterator<QString, QString> st(Database::AllStations(m_Info.key));
+        QHashIterator<Address, QString> st(Database::AllStations(m_Info.key));
         while (st.hasNext()) {
             st.next();
-            m_Available[st.key()] = StationInfo(st.key(), st.value());
+            m_Available[st.key().station] = StationInfo(st.key().station, st.value());
         }
     }
     return m_Available;
@@ -309,7 +309,7 @@ void WebFactory::storeAvail(ClientProxy* client, const QHash<QString, QString>& 
     Database::Transaction();
     while (st.hasNext()) {
         st.next();
-        Database::UpdateStationInfo(m_Info.key, st.key(), st.value());
+        Database::UpdateStationInfo(Address(m_Info.key, st.key()), st.value());
     }
     Database::Commit();
     Status s = last ? Status(Status::SUCCESS, QString("<ok/>")) : Status(Status::PENDING, QString("<ok/>"));
