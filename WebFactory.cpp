@@ -27,16 +27,6 @@ WebFactory::WebFactory(const QString& key, const QString& name, const QString& l
                       "id       integer primary key, "
                       "epoch_id integer not null, "
                       "reading  real not null)");
-    Database::Control("create table if not exists constituents ("
-                      "id       integer primary key, "
-                      "epoch_id integer not null, "
-                      "mode_id  integer not null, "
-                      "rea real not null, "
-                      "ima real not null)");
-    Database::Control("create table if not exists modes ("
-                      "id    integer primary key, "
-                      "name  text not null, "
-                      "omega real not null)");
     Database::Control("create table if not exists locations ("
                       "id         integer primary key, "
                       "station_id integer not null, "
@@ -119,18 +109,18 @@ bool WebFactory::updateNeeded(const QString& key) {
     }
 
     if (m_LastDataPoint.contains(key) && m_LastDataPoint[key] > Timestamp::now() + Interval::fromSeconds(2*24*3600)) {
-        qDebug() << "updateNeeded false: last = " << m_LastDataPoint[key].posix();
+        qDebug() << "updateNeeded false:" << key << "valid until" << m_LastDataPoint[key].print();
         return false;
     }
 
 
     QString req = stationUrl(key);
     if (m_Pending.contains(req)) {
-        qDebug() << "updateNeeded false: already active" << key;
+        qDebug() << "updateNeeded false: update of" << key << "already pending";
         return false;
     }
 
-    qDebug() << "updateNeeded: updating" << key;
+    qDebug() << "updateNeeded true: updating" << key;
     return true;
 }
 

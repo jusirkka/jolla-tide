@@ -70,7 +70,7 @@ public:
     Timestamp(): m_PosixTime(0) {}
 
 
-    bool isnil(){return m_PosixTime == 0;}
+    bool isnil() {return m_PosixTime == 0;}
 
     // Convert to Julian date
     double jd() const;
@@ -79,6 +79,8 @@ public:
     Year year() const;
 
     Timestamp& operator+= (const Interval& a);
+
+    QString print() const;
 
 private:
 

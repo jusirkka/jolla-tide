@@ -70,3 +70,6 @@ bool (Tide::operator==) (const Interval& a, const Interval& b) {
     return a.seconds == b.seconds;
 }
 
+bool (Tide::operator!=) (const Interval& a, const Interval& b) {
+    return a.seconds != b.seconds;
+}

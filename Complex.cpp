@@ -20,3 +20,7 @@ double Complex::mod() const {
 double Complex::arg() const {
     return ::atan2(y, x);
 }
+
+std::complex<double> Complex::complex() const {
+  return std::complex<double>(x, y);
+}

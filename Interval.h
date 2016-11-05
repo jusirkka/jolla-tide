@@ -71,6 +71,7 @@ bool operator<= (const Interval& a, const Interval& b);
 bool operator< (const Interval& a, const Interval& b);
 bool operator> (const Interval& a, const Interval& b);
 bool operator== (const Interval& a, const Interval& b);
+bool operator!= (const Interval& a, const Interval& b);
 
 }
 #endif

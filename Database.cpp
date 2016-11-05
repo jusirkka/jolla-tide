@@ -8,10 +8,6 @@
 
 #include "Database.h"
 
-uint qHash(const Tide::Address& addr) {
-    return qHash(addr.key());
-}
-
 using namespace Tide;
 
 Database::Database() {

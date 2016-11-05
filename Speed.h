@@ -80,6 +80,7 @@ bool operator<= (const Speed& a, const Speed& b);
 bool operator>= (const Speed& a, const Speed& b);
 
 Speed operator* (double a, const Speed& b);
+Speed operator* (const Speed& b, double a);
 
 
 }

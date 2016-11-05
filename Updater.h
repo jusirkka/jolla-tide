@@ -67,9 +67,5 @@ private:
 };
 
 
-bool operator== (const Address& a, const Address& b);
-
-
-
 }
 #endif

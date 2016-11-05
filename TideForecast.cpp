@@ -140,9 +140,6 @@ void TideForecast::handleLocationUpdate(const QString &key, ClientProxy *client,
 }
 
 void TideForecast::handleFirstAvailPage(ClientProxy* client, QNetworkReply* reply) {
-    // FIXME: remove after testing
-    QList<int> testing;
-    testing << 1 << 8 << 194 << 193;
     QByteArray page = reply->readAll();
     qDebug() << page.size();
     xmlDocPtr doc = htmlReadMemory(page.constData(), page.size(), "", NULL, HTML_PARSE_NOWARNING | HTML_PARSE_NOERROR);
@@ -162,9 +159,6 @@ void TideForecast::handleFirstAvailPage(ClientProxy* client, QNetworkReply* repl
         xmlChar* prop = xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *) "value");
         int country_id = QString((const char*) prop).toInt();
         xmlFree(prop);
-        if (!testing.contains(country_id)) {
-            continue;
-        }
         QString url = countryUrl(country_id);
         xmlChar* nodeval = xmlNodeGetContent(xpathObj->nodesetval->nodeTab[i]);
         QString name = QString((const char*) nodeval);

@@ -9,6 +9,8 @@
 
 namespace Tide {
 
+typedef qint64 db_int_t; // allow -1 to represent error
+
 class Database {
 
 public:

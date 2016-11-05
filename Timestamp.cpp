@@ -72,6 +72,9 @@ timestamp_rep_t Timestamp::posix() const {
     return m_PosixTime;
 }
 
+QString Timestamp::print() const {
+    return QDateTime::fromMSecsSinceEpoch(m_PosixTime * 1000).toString();
+}
 
 Timestamp& Timestamp::operator+= (const Interval& a) {
     m_PosixTime += a.seconds;

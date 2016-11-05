@@ -2,6 +2,7 @@
 #define COMPLEX_H
 
 #include <cmath>
+#include <complex>
 
 namespace Tide {
 class Complex {
@@ -19,6 +20,8 @@ public:
     double mod2() const;
     double mod() const;
     double arg() const;
+
+    std::complex<double> complex() const;
 
 private:
 
