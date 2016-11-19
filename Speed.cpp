@@ -44,7 +44,7 @@ Speed& Speed::operator+= (const Speed& a) {
 }
 
 bool (Tide::operator==) (const Speed& a, const Speed& b) {
-    static const double eps = 0.0000005;
+    static const double eps = 0.0000001;
     double den = 0.5 * (a.radiansPerSecond + b.radiansPerSecond);
     if (den == 0) return true; // both nil
     return fabs(a.radiansPerSecond - b.radiansPerSecond) / den < eps;

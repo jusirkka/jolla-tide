@@ -6,6 +6,9 @@
 #include <QFile>
 #include <QMapIterator>
 #include <QStringList>
+//#include <Eigen/SparseCore>
+//#include <Eigen/SparseLU>
+#include <Eigen/Dense>
 
 #include "Speed.h"
 #include "Timestamp.h"
@@ -13,6 +16,7 @@
 #include "HarmonicsCreator.h"
 #include "Database.h"
 #include "Amplitude.h"
+#include "ConstituentManager.h"
 
 using namespace Tide;
 
@@ -122,8 +126,34 @@ static Speed parseConstituent(const QStringList& parts, const QList<BC>& base) {
 }
 
 HarmonicsCreator::HarmonicsCreator():
-    m_I(0, 1)
+    m_I(0, 1), m_Data(0)
 {
+
+    Database::Control("create table if not exists constituents ("
+                      "id       integer primary key, "
+                      "patch_id integer not null, "
+                      "mode_id  integer not null, "
+                      "rea real not null, "
+                      "ima real not null)");
+
+    Database::Control("create table if not exists patches ("
+                      "id         integer primary key, "
+                      "station_id integer not null, "
+                      "start      integer not null, "
+                      "timedelta  integer not null, "
+                      "patchsize  integer not null)");
+
+    Database::Control("create table if not exists patchepochs ("
+                      "id       integer primary key, "
+                      "epoch_id integer not null, "
+                      "patch_id integer not null)");
+
+    Database::Control("create table if not exists modes ("
+                      "id    integer primary key, "
+                      "name  text not null, "
+                      "omega real not null)");
+
+
     QMap<Speed, QString> modes;
     QFile congen(":/congen_input.txt");
     QRegExp sep("\\s+");
@@ -149,18 +179,20 @@ HarmonicsCreator::HarmonicsCreator():
         if (!types.contains(parts[1])) continue;
         Speed mode = parseConstituent(parts, base);
         if (modes.contains(mode)) {
-            // qDebug() << parts[0] << "is a duplicate of" << modes[mode] << ", skipping";
+            // qDebug().noquote() << "skipping" << parts[0] << "~>" << modes[mode] << mode.dph();
             continue;
         }
         modes[mode] = parts[0];
     }
 
-    m_W["Z0"] = 0;
+    m_KnownModes["Z0"] = Speed::fromRadiansPerSecond(0);
+    m_KnownNames[m_KnownModes["Z0"]] = "Z0";
     QMapIterator<Speed, QString> m(modes);
     while (m.hasNext()) {
         m.next();
         // qDebug() << m.value() << m.key().dph();
-        m_W[m.value()] = m.key().radiansPerSecond;
+        m_KnownModes[m.value()] = m.key();
+        m_KnownNames[m.key()] = m.value();
     }
 
     checkDBIntegrity();
@@ -171,90 +203,341 @@ HarmonicsCreator* HarmonicsCreator::instance() {
     return hc;
 }
 
-HarmonicsCreator::Coefficients HarmonicsCreator::patch(int step, const LevelData& levels) {
-    Coefficients r;
-    ModeSpeedIterator it(m_W);
-    while (it.hasNext()) {
-        it.next();
-        QString m = it.key();
-        double w = it.value();
-        Complex sum = 0;
-        for (int n = 0; n < levels.count(); n++) {
-            sum += levels[n] * exp(-1 * m_I * w * step * n);
-        }
+void HarmonicsCreator::reset(db_int_t station_id) {
+    m_Averages.clear();
+    m_PatchData.clear();
 
-        r[m] = sum;
+    ConstituentManager mgr(station_id);
+    Coefficients sums;
+    while (mgr.next()) {
+        Patch patch = mgr.patch();
+        Coefficients coeffs = mgr.constituents();
+
+        m_PatchData.append(patch);
+
+        CoefficientsIterator it(coeffs);
+        double delta = patch.offset().seconds;
+        while (it.hasNext()) {
+            it.next();
+            if (!m_KnownNames.contains(it.key())) continue;
+            double w = it.key().radiansPerSecond;
+            sums[it.key()] += it.value() * exp(Complex(0, - delta * w));
+        }
     }
 
-    return r;
-}
-
-void HarmonicsCreator::reset() {
     m_N = 0;
-    m_D = 0;
-    m_ModeSums.clear();
+
+    for (int p = 0; p < m_PatchData.size(); p++) {
+        m_N += m_PatchData[p].size();
+    }
+
+    CoefficientsIterator it(sums);
+    while (it.hasNext()) {
+        it.next();
+        m_Averages[it.key()] = it.value() / m_N;
+    }
+
+    delete m_Data;
+    m_Data = new PatchIterator(station_id);
 }
 
 
-void HarmonicsCreator::append(int delta, int patchsize, int step, const Coefficients& patch) {
-    m_N += patchsize;
-    m_D += (patchsize - 1) * step;
-    CoefficientsIterator it(patch);
-    while (it.hasNext()) {
-        it.next();
-        double w = m_W[it.key()];
-        m_ModeSums[it.key()] += it.value() * exp(-1 * m_I * delta * w);
+RunningSet* HarmonicsCreator::average(double b0) {
+
+    if (m_Averages.isEmpty()) return 0;
+
+    Coefficients coeffs = solve(0.9, 0.0025, b0);
+    qDebug() << "error estimate = " << errorEstimate(coeffs);
+
+    Speed z = Speed::fromRadiansPerSecond(0);
+    if (!coeffs.contains(z)) {
+        return 0;
+    }
+
+    Amplitude datum = Amplitude::fromDottedMeters(coeffs[z].x, 0);
+    RunningSet* rset = new RunningSet(m_Data->epoch(), datum);
+
+    CoefficientsIterator m(coeffs);
+    while (m.hasNext()) {
+        m.next();
+        if (m.key() == z) continue;
+        rset->append(m.value(), m.key());
+    }
+
+    return rset;
+}
+
+//typedef Eigen::SparseMatrix<std::complex<double>> SpMat; // declares a column-major sparse matrix type of complex
+//typedef Eigen::Triplet<std::complex<double>> A;
+
+static bool Diag = true;
+// static bool Off = false;
+
+typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic> MT;
+typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> VT;
+
+HarmonicsCreator::Coefficients HarmonicsCreator::solve(double cutCeil, double cutFloor, double b0) {
+
+    QVector<QVector<Speed>> modes = selectModes(cutCeil, cutFloor, b0);
+    Coefficients coeffs;
+    Speed z = Speed::fromRadiansPerSecond(0);
+    coeffs[z] = m_Averages[z];
+
+    foreach (QVector<Speed> group, modes) {
+        if (group.length() == 1) {
+            Speed q = group.first();
+            if (q != z) {
+                coeffs[q] = 2 * m_Averages[q];
+            }
+            continue;
+        }
+        int n = group.length();
+        MT A(n, n);
+        VT B(n);
+        for (int q = 0; q < n; q++) {
+            Speed w1 = group[q];
+            A(q, q) = 1;
+            B(q) = m_Averages[w1].complex();
+            for (int p = q + 1; p < n; p++) {
+                Speed w2 = group[p];
+                A(q, p) = computeElement(w1, w2, Diag).complex();
+            }
+        }
+        A = Eigen::SelfAdjointView<Eigen::MatrixXcd, Eigen::Upper>(A);
+
+        Eigen::VectorXcd X = A.colPivHouseholderQr().solve(B);
+        qDebug() << "error estimate of inversion" << (A*X - B).norm() / B.norm();
+        for (int q = 0; q < n; q++) {
+            Speed w1 = group[q];
+            coeffs[w1] = 2 * Complex(B(q));
+        }
+    }
+
+    return coeffs;
+}
+
+QVector<QVector<Speed>> HarmonicsCreator::selectModes(double cutCeil, double cutFloor, double b0) {
+    QVector<Speed> modes = m_KnownNames.keys().toVector();
+    Speed z = Speed::fromRadiansPerSecond(0);
+
+    QVector<Speed> pass_1;
+    pass_1.append(z);
+    foreach (Speed q, modes) {
+        if (!m_Averages.contains(q) || m_Averages[q].mod() < cutFloor || q == z) {
+            if (m_Averages.contains(q) && q != z) {
+                qDebug().noquote() << "skipping" << m_KnownNames[q] << q.dph() << m_Averages[q].mod();
+            }
+            continue;
+        }
+        pass_1.append(q);
+    }
+
+    qDebug() << "number of mode after pass 1" << pass_1.length();
+
+
+    QVector<Speed> pass_2;
+    foreach (Speed q, pass_1) {
+        Complex elem  = computeElement(z, q, Diag);
+        if (elem.mod() > 0.1) {
+            if (q != z) {
+                qDebug().noquote() << "TODO: Long wave"  << m_KnownNames[q] << q.dph() << elem.mod();
+            }
+            continue;
+        }
+        pass_2.append(q);
+    }
+
+    qDebug() << "number of modes after pass 2" << pass_2.length();
+
+    QVector<QVector<Speed>> grouping;
+    grouping.append(QVector<Speed>());
+    grouping.last().append(z);
+    foreach (Speed q, pass_2) {
+        Complex elem  = computeElement(grouping.last().last(), q, Diag);
+        if (elem.mod() > cutCeil) {
+            grouping.last().append(q);
+        } else {
+            grouping.append(QVector<Speed>());
+            grouping.last().append(q);
+        }
+    }
+
+    QVector<QVector<Speed>> filtered;
+    foreach (QVector<Speed> group, grouping) {
+        bool done = false;
+        QVector<Speed> modes = group;
+        while (!done && modes.length() > 1) {
+            done = checkModes(modes, b0);
+        }
+        filtered.append(modes);
+    }
+
+    foreach (QVector<Speed> group, filtered) {
+        Speed q = group.first();
+        Speed p = group.last();
+        qDebug().noquote() << "group"  << m_KnownNames[q] << q.dph() << " -> " << m_KnownNames[p] << p.dph() << ", length" << group.length();
+        QString avs = "";
+        foreach (Speed w, group) {
+            avs += QString("%1 ").arg(m_Averages[w].mod(), 6, 'f', 4);
+            if (group.length() == 1) continue;
+            // QString corrs1 = "";
+            QString corrs2 = "";
+            foreach (Speed w2, group) {
+                if (w2 > w) {
+                    Complex r  = computeElement(w, w2, Diag);
+                    Complex dB = (m_Averages[w2] - m_Averages[w]);
+                    Complex B0 = (m_Averages[w2] + m_Averages[w]);
+                    // corrs1 += QString("%1 ").arg(dB.mod() / (1-r.mod()), 6, 'g', 4);
+                    corrs2 += QString("%1 ").arg((dB/B0 + r.y * m_I).mod() / (1-r.x), 6, 'g', 4);
+                }
+            }
+            if (corrs2.isEmpty()) continue;
+            // qDebug().noquote() << corrs1;
+            qDebug().noquote() << corrs2;
+
+        }
+        qDebug().noquote() << avs;
+    }
+
+    qDebug() << "number of groups" << grouping.length();
+
+
+    return filtered;
+}
+
+bool HarmonicsCreator::checkModes(QVector<Speed>& modes, double b0) {
+    Speed q = modes.first();
+    Speed p = modes.last();
+    qDebug().noquote() << "checkModes"  << m_KnownNames[q] << q.dph() << " -> " << m_KnownNames[p] << p.dph() << ", length" << modes.length();
+    foreach (Speed w, modes) {
+        foreach (Speed w2, modes) {
+            if (w2 > w) {
+                Complex r  = computeElement(w, w2, Diag);
+                Complex dB = (m_Averages[w2] - m_Averages[w]);
+                Complex B0 = (m_Averages[w2] + m_Averages[w]);
+                double corr = (dB/B0 + r.y * m_I).mod() / (1-r.x);
+                if (corr > b0) {
+                    if (m_Averages[w2].mod() < m_Averages[w].mod()) {
+                        qDebug().noquote() << "removing"  << m_KnownNames[w2] << w2.dph() << m_Averages[w2].mod();
+                        modes.removeOne(w2);
+                    } else {
+                        qDebug().noquote() << "removing"  << m_KnownNames[w] << w.dph() << m_Averages[w].mod();
+                        modes.removeOne(w);
+                    }
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+double HarmonicsCreator::errorEstimate(const Coefficients& coeffs) {
+
+    Speed z = Speed::fromRadiansPerSecond(0);
+
+    if (!coeffs.contains(z)) {
+        return ::nan("");
+    }
+
+    Amplitude datum = Amplitude::fromDottedMeters(coeffs[z].x, 0);
+    RunningSet rset(m_Data->epoch(), datum);
+
+    CoefficientsIterator m(coeffs);
+    while (m.hasNext()) {
+        m.next();
+        if (m.key() == z) continue;
+        rset.append(m.value(), m.key());
+    }
+
+    double squareSum = 0;
+
+    m_Data->reset();
+    while (m_Data->nextPatch()) {
+        while (m_Data->next()) {
+            double d = m_Data->reading() - (rset.datum() + rset.tideDerivative(m_Data->stamp(), 0)).value;
+            squareSum += d * d;
+        }
+    }
+
+    return ::sqrt(squareSum) / m_N;
+}
+
+
+
+void HarmonicsCreator::printMatrix(const ModeMatrix& D) {
+    QString art("\n");
+
+    QString triangle("");
+
+    ModeMatrixIterator m(D);
+    while (m.hasNext()) {
+        m.next();
+        art += triangle;
+        triangle += '_';
+        ModeVectorIterator n(m.value());
+        while (n.hasNext()) {
+            n.next();
+            if (n.value().mod() < 0.01) {
+                art += ".";
+            } else {
+                unsigned v = unsigned(10*n.value().mod());
+                art += QString("%1").arg(v, 0, 16).toUpper();
+            }
+        }
+        art += "\n";
+    }
+    qDebug().noquote() << art;
+}
+
+
+
+Complex HarmonicsCreator::computeElement(const Speed& q, const Speed& p, bool diag) const {
+    double mul = diag ? -1 : 1;
+    Complex sum(0, 0);
+    foreach (Patch patch, m_PatchData) {
+        sum += patch.size() / m_N * coeff(q.radiansPerSecond + mul * p.radiansPerSecond, patch);
+    }
+    return sum;
+}
+
+void HarmonicsCreator::computeMatrix(ModeMatrix &m, bool diag) const {
+    double mul = diag ? -1 : 1;
+    QList<Speed> modes = m_KnownNames.keys();
+
+    foreach (Speed q, modes) {
+        foreach (Speed p, modes) {
+            if (p < q) continue;
+            Complex sum(0, 0);
+            foreach (Patch patch, m_PatchData) {
+                sum += patch.size() / m_N * coeff(q.radiansPerSecond + mul * p.radiansPerSecond, patch);
+            }
+            m[q][p] = sum;
+        }
     }
 }
 
-HarmonicsCreator::Coefficients HarmonicsCreator::average() const {
+Complex HarmonicsCreator::coeff(double omega, const Patch &patch) const {
+    double x = patch.step().seconds * omega;
+    double beta = double(patch.offset().seconds) / patch.step().seconds + 0.5 * (patch.size() - 1);
+    return exp(Complex(0, - beta * x)) * factor(x, patch.size());
+}
 
-    Coefficients r;
-
-    if (!m_N) return r;
-
-    ModeSpeedIterator it(m_W);
-    QMap<quint64, Complex> ksum;
-    QMap<quint64, int> kcount;
-    QMap<quint64, QString> kname;
-    while (it.hasNext()) {
-        it.next();
-        double w = it.value();
-        QString m = it.key();
-
-        if (m == "Z0") {
-            r[m] = m_ModeSums[m] / m_N;
-            continue;
-        }
-
-        double kvalue = w / (2*M_PI) * m_D;
-        if (kvalue < 2) {
-            // qDebug() << "skipping " << m << ", k_c = " << kvalue << "Amplitude = " << a;
-            continue;
-        }
-
-        quint64 slot(kvalue);
-        ksum[slot] += m_ModeSums[m];
-        kcount[slot] += 1;
-        kname[slot] = m; // represents the average
-
+double HarmonicsCreator::factor(double x, unsigned n) const {
+    if (x < 0) x = -x;
+    double r = x / (2*M_PI);
+    double eps = 0.001 / n;
+    int lo = int(r);
+    if (r - lo < eps) {
+        if ((lo * (n - 1)) % 2) return 1;
+        return -1;
     }
-
-    QMapIterator<quint64, QString> k(kname);
-    while (k.hasNext()) {
-        k.next();
-        QString m = k.value();
-        // double w = Speed::fromRadiansPerSecond(m_W[m]).dph();
-        double a = ksum[k.key()].mod() / kcount[k.key()] / m_N * 2;
-        if (a < 0.02) {
-            // qDebug() << "skipping " << m <<  w << ", Amplitude = " << a;
-            continue;
-        }
-        r[m] = ksum[k.key()] / kcount[k.key()] / m_N * 2;
-        // qDebug() << "Mode" << m << w << "Amplitude = " << r[m].mod() << "average of" << kcount[k.key()] << "modes";
+    int up = int(r+1);
+    if (up - r < eps) {
+        if ((up * (n - 1)) % 2) return 1;
+        return -1;
     }
-
-    return r;
+    return sin(0.5 * n * x) / sin(0.5 * x) / n;
 }
 
 void HarmonicsCreator::checkDBIntegrity() {
@@ -262,7 +545,7 @@ void HarmonicsCreator::checkDBIntegrity() {
     QVariantList vars;
 
     // Modes
-    ModeSpeedIterator m(m_W);
+    ModeSpeedIterator m(m_KnownModes);
     Database::Transaction();
     while (m.hasNext()) {
         m.next();
@@ -271,187 +554,20 @@ void HarmonicsCreator::checkDBIntegrity() {
         r = Database::Query("select id from modes where name=?", vars);
         if (r.isEmpty()) {
             vars.clear();
-            vars << QVariant::fromValue(m.value()) << QVariant::fromValue(m.key());
+            vars << QVariant::fromValue(m.value().radiansPerSecond) << QVariant::fromValue(m.key());
             Database::Control("insert into modes (omega, name) values (?, ?)", vars);
         } else {
             vars.clear();
-            vars << QVariant::fromValue(m.value()) << r.first()[0];
+            vars << QVariant::fromValue(m.value().radiansPerSecond) << r.first()[0];
             Database::Control("update modes set omega=? where id=?", vars);
         }
     }
     Database::Commit();
-
-    // Epochs
-    QMap<qint64, QVector<qint64>> patch_first;
-    QMap<qint64, QVector<qint64>> patch_last;
-    QMap<qint64, QVector<qint64>> epochs;
-    QMap<qint64, qint64> deltas;
-    r = Database::Query("select id, station_id, start, timedelta, patchsize from epochs order by station_id, start");
-    foreach (QVector<QVariant> row, r) {
-        qint64 epoch_id = row[0].toInt();
-        qint64 station_id = row[1].toInt();
-        qint64 start = row[2].toInt();
-        qint64 timedelta = row[3].toInt();
-        qint64 patchsize = row[4].toInt();
-        patch_first[station_id].append(start);
-        patch_last[station_id].append(start + timedelta * (patchsize - 1));
-        epochs[station_id].append(epoch_id);
-        deltas[epoch_id] = timedelta;
-    }
-
-    QMapIterator<qint64, QVector<qint64>> st(epochs);
-    while (st.hasNext()) {
-        st.next();
-        QVector<qint64> first_stamp = patch_first[st.key()];
-        QVector<qint64> last_stamp = patch_last[st.key()];
-        for (int idx = 1; idx < last_stamp.size(); idx++) {
-            qint64 epoch_id = st.value()[idx - 1];
-            if (first_stamp[idx] < last_stamp[idx - 1]) {
-                qDebug() << "Overlap" << st.key() << epoch_id << idx << last_stamp[idx - 1] - first_stamp[idx];
-                qint64 new_last = first_stamp[idx] - 5;
-                qint64 delta = deltas[epoch_id];
-                vars.clear();
-                vars << QVariant::fromValue(epoch_id);
-                Database::Control("delete from constituents where epoch_id=?", vars);
-                r = Database::Query("select id from readings where epoch_id=? limit 1", vars);
-                if (r.isEmpty()) continue;
-                vars << QVariant::fromValue(r.first()[0].toInt() + (new_last - first_stamp[idx - 1]) / delta);
-                Database::Control("delete from readings where epoch_id=? and id > ?", vars);
-                vars.clear();
-                vars << QVariant::fromValue(epoch_id);
-                r = Database::Query("select count(*) from readings where epoch_id=?", vars);
-                vars.clear();
-                vars << r.first()[0] << QVariant::fromValue(epoch_id);
-                Database::Control("update epochs set patchsize=? where id=?", vars);
-            }
-        }
-    }
 }
 
-Tide::RunningSet* HarmonicsCreator::CreateConstituents(int station_id) {
-
-    // Ensure that all patches have been computed
-    UpdateDB(station_id);
-
-    QList<QVector<QVariant>> r;
-    QVariantList vars;
-    vars << QVariant::fromValue(station_id);
-    r = Database::Query("select id, start, timedelta, patchsize from epochs where station_id=? order by start", vars);
-    if (r.isEmpty()) {
-        return 0;
-    }
-
-    Timestamp epoch = Timestamp::fromPosixTime(r.first()[1].toInt());
-
-    instance()->reset();
-
-
-    foreach (QVector<QVariant> row, r) {
-        int epoch_id = row[0].toInt();
-        int delta = row[1].toInt() - epoch.posix();
-        int step = row[2].toInt();
-        int patchsize = row[3].toInt();
-        Coefficients c;
-        QList<QVector<QVariant>> r2;
-        vars.clear();
-        vars << QVariant::fromValue(epoch_id);
-        r2 = Database::Query("select m.name, c.rea, c.ima from constituents c "
-                             "join modes m on m.id=c.mode_id "
-                             "where c.epoch_id=?", vars);
-        foreach (QVector<QVariant> row2, r2) {
-            QString name = row2[0].toString();
-            double x = row2[1].toDouble();
-            double y = row2[2].toDouble();
-            c[name] = Complex(x, y);
-        }
-        instance()->append(delta, patchsize, step, c);
-    }
-
-    Coefficients coeffs = instance()->average();
-
-    if (!coeffs.contains("Z0")) {
-        return 0;
-    }
-
-    Amplitude datum = Amplitude::fromDottedMeters(coeffs["Z0"].x, 0);
-    RunningSet* rset = new RunningSet(epoch, datum);
-
-    ModeSpeed modes = instance()->modes();
-
-    CoefficientsIterator m(coeffs);
-    while (m.hasNext()) {
-        m.next();
-        if (m.key() == "Z0") continue;
-        Speed w = Speed::fromRadiansPerSecond(modes[m.key()]);
-        rset->append(m.value(), w);
-    }
-
-    return rset;
-}
-
-Tide::Timestamp HarmonicsCreator::LastDataPoint(int station_id) {
-
-    QList<QVector<QVariant>> r;
-    QVariantList vars;
-
-    vars << QVariant::fromValue(station_id);
-    r = Database::Query("select timedelta, patchsize, max(start) from epochs "
-                        "where station_id=?", vars);
-    if (r.isEmpty()) {
-        return Timestamp::fromPosixTime(0);
-    }
-
-    Interval last_step = Interval::fromSeconds(r.first()[0].toInt());
-    int last_number_of_points = r.first()[1].toInt();
-    Timestamp last_stamp = Timestamp::fromPosixTime(r.first()[2].toInt());
-
-    return last_stamp + last_step * (last_number_of_points - 1);
-}
-
-void HarmonicsCreator::UpdateDB(int station_id) {
-    // Fetch patches that are already present
-    QList<QVector<QVariant>> r;
-    QVariantList vars;
-    vars << QVariant::fromValue(station_id);
-    r = Database::Query("select distinct e.id from epochs e join constituents c on c.epoch_id=e.id where e.station_id=?", vars);
-    QVector<int> constituents;
-    foreach (QVector<QVariant> row, r) {
-        constituents.append(row[0].toInt());
-    }
-    // 1. read raw data
-    r = Database::Query("select id, timedelta from epochs where station_id=?", vars);
-    // qDebug() << r.size() << vars[0].toInt() << station_id;
-    foreach (QVector<QVariant> row, r) {
-        int epoch_id = row[0].toInt();
-        if (constituents.contains(epoch_id)) continue;
-        int step = row[1].toInt();
-        vars.clear();
-        vars << QVariant::fromValue(epoch_id);
-        QList<QVector<QVariant>> raw = Database::Query("select reading from readings where epoch_id=?", vars);
-        HarmonicsCreator::LevelData levels(raw.size());
-        for (int i = 0; i < levels.size(); ++i) {
-            levels[i] = raw[i][0].toDouble();
-        }
-        // 2. Read partial constituents
-        Coefficients coeffs = instance()->patch(step, levels);
-        // 5. Insert partial constituents
-        CoefficientsIterator c(coeffs);
-        Database::Transaction();
-        while (c.hasNext()) {
-            c.next();
-            vars.clear();
-            vars << QVariant::fromValue(c.key());
-            r = Database::Query("select id from modes where name=?", vars);
-            vars.clear();
-            vars << QVariant::fromValue(epoch_id) << r[0][0] <<
-                    QVariant::fromValue(c.value().x) << QVariant::fromValue(c.value().y);
-            Database::Control("insert into constituents (epoch_id, mode_id, rea, ima) values (?, ?, ?, ?)", vars);
-        }
-        Database::Commit();
-
-    }
-
-
+Tide::RunningSet* HarmonicsCreator::CreateConstituents(int station_id, double cutOff) {
+    instance()->reset(station_id);
+    return instance()->average(cutOff);
 }
 
 

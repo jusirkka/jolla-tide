@@ -4,6 +4,8 @@ using namespace Tide;
 
 Complex::Complex(double r, double i): x(r), y(i) {}
 
+Complex::Complex(std::complex<double> z): x(z.real()), y(z.imag()) {}
+
 Complex Complex::conjugate() const {
     return Complex(x, -y);
 }

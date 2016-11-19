@@ -122,21 +122,27 @@ PatchIterator::PatchIterator(db_int_t station_id) {
             continue;
         }
 
+        if (start + step * (size - 1) < patch_last) {
+            qDebug() << "skipping redundant epoch" << epoch_id;
+            continue;
+        }
 
         epochs.append(epoch_id);
         if (step > patch_step) patch_step = step;
         patch_last = start + step * (size - 1);
     }
 
-    // Append last patch
-    Timestamp t = Timestamp::fromPosixTime(patch_start);
-    Interval i = Interval::fromSeconds(patch_step);
-    db_int_t s = (patch_last - patch_start) / patch_step + 1;
-    qDebug() << "patch" << Timestamp::fromPosixTime(patch_start).print()
-             << Timestamp::fromPosixTime(patch_last).print()
-             << epochs
-             << s;
-    m_Patches.append(Patch(t, i, s, epochs));
+    if (r.size() > 0) {
+        // Append last patch
+        Timestamp t = Timestamp::fromPosixTime(patch_start);
+        Interval i = Interval::fromSeconds(patch_step);
+        db_int_t s = (patch_last - patch_start) / patch_step + 1;
+        qDebug() << "patch" << Timestamp::fromPosixTime(patch_start).print()
+                 << Timestamp::fromPosixTime(patch_last).print()
+                 << epochs
+                 << s;
+        m_Patches.append(Patch(t, i, s, epochs));
+    }
 
     m_CurrentPatch = -1;
 }
@@ -154,6 +160,10 @@ bool PatchIterator::nextPatch() {
     m_Step = data().step().seconds;
     m_CurrentStamp = m_FirstStamp[data().epochs().at(m_CurrentEpoch)] - m_Step;
     return true;
+}
+
+void PatchIterator::reset() {
+    m_CurrentPatch = -1;
 }
 
 Timestamp PatchIterator::lastDataPoint() {
@@ -178,6 +188,10 @@ bool PatchIterator::next() {
     }
     if (m_CurrentEpoch >= epochs.size()) return false;
     return true;
+}
+
+Timestamp PatchIterator::stamp() const {
+    return Timestamp::fromPosixTime(m_CurrentStamp);
 }
 
 

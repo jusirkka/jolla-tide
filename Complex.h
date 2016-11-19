@@ -15,6 +15,7 @@ public:
     Complex(const Complex& a): x(a.x), y(a.y) {}
     Complex& operator=(const Complex& a) {x = a.x; y = a.y; return *this;}
     Complex& operator+=(const Complex& a) {x += a.x; y += a.y; return *this;}
+    Complex(std::complex<double> z);
 
     Complex conjugate() const;
     double mod2() const;

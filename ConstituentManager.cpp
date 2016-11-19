@@ -104,17 +104,18 @@ void ConstituentManager::createConstituent() {
     }
 
     QMap<int, Complex> constituents;
-    quint64 t = 0;
+    Timestamp start = p.start();
     while (m_Patches.next()) {
+        double a = m_Patches.reading();
+        double t = (m_Patches.stamp() - start).seconds;
         QMapIterator<Speed, int> it(modes);
         while (it.hasNext()) {
             it.next();
             double w = it.key().radiansPerSecond;
-            constituents[it.value()] += m_Patches.reading() * exp(Complex(0, - w * t));
+            constituents[it.value()] += a * exp(Complex(0, - w * t));
         }
-        t += p.step().seconds;
     }
-    qDebug() << "consistency:" << t / p.step().seconds  << p.size();
+
 
     Database::Transaction();
     QMapIterator<int, Complex> it(constituents);

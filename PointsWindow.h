@@ -42,6 +42,7 @@ class PointsWindow : public QStackedWidget {
 public:
 
     PointsWindow(const Address& address, const Station& station);
+    PointsWindow(int station_id, double cutOff);
 
 protected:
 

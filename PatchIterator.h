@@ -52,8 +52,10 @@ public:
     Patch data() const;
     bool next();
     bool nextPatch();
+    void reset();
     Timestamp lastDataPoint();
     Timestamp epoch() const;
+    Timestamp stamp() const;
     double reading();
 
     ~PatchIterator() {}

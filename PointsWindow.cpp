@@ -3,6 +3,8 @@
 #include "Database.h"
 #include "Amplitude.h"
 #include "Station.h"
+#include "PatchIterator.h"
+#include "HarmonicsCreator.h"
 
 #include <qwt_plot_curve.h>
 #include <qwt_plot_layout.h>
@@ -20,109 +22,6 @@
 
 using namespace Tide;
 
-class ReadingsIterator {
-public:
-    ReadingsIterator(const Address& addr, const Station* s);
-    bool next();
-    Timestamp stamp();
-    double reading();
-
-    ~ReadingsIterator() {}
-
-private:
-
-    const Station* m_Station;
-
-    int m_CurrentPatch;
-    int m_CurrentStamp;
-    int m_Step;
-
-    QVector<qint64> m_Epochs;
-
-    QMap<qint64, qint64> m_PatchFirst;
-    QMap<qint64, qint64> m_PatchLast;
-    QMap<qint64, qint64> m_Steps;
-    QMap<qint64, QVector<double>> m_Readings;
-
-
-};
-
-
-ReadingsIterator::ReadingsIterator(const Address &addr, const Station* s):
-    m_Station(s),
-    m_CurrentPatch(0) {
-
-    int station_id = Database::StationID(addr);
-
-    QList<QVector<QVariant>> r;
-    QVariantList vars;
-    vars << QVariant::fromValue(station_id);
-    r = Database::Query("select id, start, timedelta, patchsize from epochs where station_id=? order by start", vars);
-
-
-    qint64 max_step = 0;
-    foreach (QVector<QVariant> row, r) {
-        qint64 epoch_id = row[0].toInt();
-        m_Epochs.append(epoch_id);
-
-        qint64 start = row[1].toInt();
-        qint64 step = row[2].toInt();
-
-        if (step > max_step) max_step = step;
-
-        qint64 patchsize = row[3].toInt();
-
-        m_PatchFirst[epoch_id] = start;
-        m_PatchLast[epoch_id] = start + step * (patchsize - 1);
-        m_Steps[epoch_id] = step;
-
-        vars.clear();
-        vars << QVariant::fromValue(epoch_id);
-        QList<QVector<QVariant>> raw = Database::Query("select reading from readings where epoch_id=?", vars);
-        foreach (QVector<QVariant> v, raw) {
-            m_Readings[epoch_id].append(v[0].toDouble());
-        }
-    }
-
-    m_Step = max_step;
-    m_CurrentStamp = m_PatchFirst[m_Epochs.first()] - m_Step;
-}
-
-
-bool ReadingsIterator::next() {
-    if (m_CurrentPatch >= m_Epochs.size()) return false;
-    m_CurrentStamp += m_Step;
-    if (m_CurrentStamp > m_PatchLast[m_Epochs[m_CurrentPatch]]) {
-        m_CurrentPatch += 1;
-    }
-    if (m_CurrentPatch >= m_Epochs.size()) return false;
-    return true;
-}
-
-Timestamp ReadingsIterator::stamp() {
-    return Timestamp::fromPosixTime(m_CurrentStamp);
-}
-
-double ReadingsIterator::reading() {
-
-    qint64 epoch_id = m_Epochs[m_CurrentPatch];
-    if (m_CurrentStamp < m_PatchFirst[epoch_id]) {
-        // between patches
-        Amplitude v = m_Station->predictTideLevel(Timestamp::fromPosixTime(m_CurrentStamp));
-        return v.value;
-    }
-
-    qint64 delta = m_CurrentStamp - m_PatchFirst[epoch_id];
-    qint64 step = m_Steps[epoch_id];
-    qint64 index = delta / step;
-    if (delta % step == 0) {
-        return m_Readings[epoch_id][index];
-    }
-
-    // linear interpolation
-    double x = double (delta % step) / step;
-    return m_Readings[epoch_id][index] * (1 - x) + m_Readings[epoch_id][index + 1] * x;
-}
 
 
 PointsWindow::PointsWindow(const Address& addr, const Station& station):
@@ -133,10 +32,16 @@ PointsWindow::PointsWindow(const Address& addr, const Station& station):
     QVector<double> gen;
     QVector<Timestamp> stamps;
 
-    ReadingsIterator points(addr, &station);
-    while (points.next()) {
-        stamps.append(points.stamp());
-        orig.append(points.reading());
+    int station_id = Database::StationID(addr);
+    PatchIterator points(station_id);
+
+    while (points.nextPatch()) {
+        stamps.clear(); // only last patch
+        orig.clear();
+        while (points.next()) {
+            stamps.append(points.stamp());
+            orig.append(points.reading());
+        }
     }
 
     foreach (Timestamp t, stamps) {
@@ -145,6 +50,40 @@ PointsWindow::PointsWindow(const Address& addr, const Station& station):
     }
 
     QString stationName = Database::StationInfo(addr, "name");
+
+    addWidget(new TimeDomain(stationName, stamps, orig, gen));
+    addWidget(new FrequencyDomain(stationName, stamps, orig, gen));
+}
+
+
+PointsWindow::PointsWindow(int station_id, double cutoff):
+    QStackedWidget()
+{
+
+    QVector<double> orig;
+    QVector<double> gen;
+    QVector<Timestamp> stamps;
+
+    PatchIterator points(station_id);
+
+    while (points.nextPatch()) {
+        stamps.clear(); // only last patch
+        orig.clear();
+        while (points.next()) {
+            stamps.append(points.stamp());
+            orig.append(points.reading());
+        }
+    }
+
+    Tide::RunningSet* rset = Tide::HarmonicsCreator::CreateConstituents(station_id, cutoff);
+
+
+    foreach (Timestamp t, stamps) {
+        Amplitude v = rset->datum() + rset->tideDerivative(t, 0);
+        gen.append(v.value);
+    }
+
+    QString stationName = QString("Station %1").arg(station_id);
 
     addWidget(new TimeDomain(stationName, stamps, orig, gen));
     addWidget(new FrequencyDomain(stationName, stamps, orig, gen));
@@ -235,7 +174,7 @@ TimeDomain::TimeDomain(const QString& station, const QVector<Timestamp>& stamps,
 FrequencyDomain::FrequencyDomain(const QString& station, const QVector<Timestamp>& stamps, const QVector<double>& orig, const QVector<double>& gen):
     GraphFrame(QString("%1: Frequency domain").arg(station))
 {
-    setAxisScale(QwtPlot::yLeft, 0, 60);
+    setAxisScale(QwtPlot::yLeft, 0, 200);
     setAxisScale(QwtPlot::xBottom, 0, 200);
 
     int count = 2 * (stamps.size() / 2);

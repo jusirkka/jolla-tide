@@ -85,13 +85,14 @@ const Station& WebFactory::instance(const QString& key) {
 
     int station_id = r.first()[0].toInt();
 
-    RunningSet* rset = HarmonicsCreator::CreateConstituents(station_id);
+    RunningSet* rset = HarmonicsCreator::CreateConstituents(station_id, 2.0);
     if (!rset) {
         return m_Invalid;
     }
 
     m_Loaded[key] = new Station(rset, name, Coordinates::parseISO6709(loc));
-    m_LastDataPoint[key] = HarmonicsCreator::LastDataPoint(station_id);
+    PatchIterator patches(station_id);
+    m_LastDataPoint[key] = patches.lastDataPoint();
 
     return *m_Loaded[key];
 
@@ -281,7 +282,6 @@ void WebFactory::storeStation(const QString& key, ClientProxy* client, const QVe
     Database::Commit();
 
 
-    HarmonicsCreator::UpdateDB(station_id);
     Status s(Status::SUCCESS, QString("<ok/>"));
     client->whenFinished(s);
     delete client;
