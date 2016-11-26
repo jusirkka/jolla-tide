@@ -88,7 +88,7 @@ void Tide::Events::computeEvents(int cnt) {
     Timestamp start;
     int mul = cnt < 0 ? -1 : 1;
     if (m_Events.isEmpty()) {
-        start = Timestamp::fromPosixTime(QDateTime::currentMSecsSinceEpoch() / 1000);
+        start = Timestamp::now();
     } else if (cnt < 0) {
         start = m_Events.first().time;
     } else {

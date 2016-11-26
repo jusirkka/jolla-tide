@@ -6,12 +6,11 @@ CONFIG += c++11
 
 SOURCES += updater.cpp Station.cpp Angle.cpp Amplitude.cpp Coordinates.cpp Interval.cpp  \
     TideEvent.cpp Timestamp.cpp Speed.cpp Year.cpp RunningSet.cpp Complex.cpp HarmonicsCreator.cpp \
-    Database.cpp WebFactory.cpp TideForecast.cpp Skycal.cpp Updater.cpp Address.cpp PatchIterator.cpp \
-    ConstituentManager.cpp
+    Database.cpp WebFactory.cpp TideForecast.cpp Skycal.cpp Updater.cpp Address.cpp PatchIterator.cpp
 
 HEADERS += Amplitude.h ConstituentSet.h Speed.h Year.h Angle.h Coordinates.h Station.h \
     TideEvent.h Interval.h StationFactory.h Timestamp.h RunningSet.h HarmonicsCreator.h Complex.h \
-    Database.h WebFactory.h TideForecast.h Skycal.h Updater.h Address.h PatchIterator.h ConstituentManager.h
+    Database.h WebFactory.h TideForecast.h Skycal.h Updater.h Address.h PatchIterator.h
 
 DEFINES += QT_STATICPLUGIN
 

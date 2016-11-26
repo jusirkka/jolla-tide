@@ -6,12 +6,12 @@ CONFIG += c++11
 
 SOURCES += harmonics.cpp Angle.cpp Amplitude.cpp Coordinates.cpp Interval.cpp  \
     Timestamp.cpp Speed.cpp Year.cpp RunningSet.cpp Complex.cpp HarmonicsCreator.cpp \
-    Database.cpp Address.cpp PatchIterator.cpp ConstituentManager.cpp PointsWindow.cpp \
+    Database.cpp Address.cpp PatchIterator.cpp PointsWindow.cpp \
     Station.cpp Skycal.cpp
 
 HEADERS += Amplitude.h ConstituentSet.h Speed.h Year.h Angle.h Coordinates.h \
     Interval.h Timestamp.h RunningSet.h HarmonicsCreator.h Complex.h \
-    Database.h Address.h PatchIterator.h ConstituentManager.h PointsWindow.h \
+    Database.h Address.h PatchIterator.h PointsWindow.h \
     Station.h Skycal.h
 
 RESOURCES += harmonics.qrc

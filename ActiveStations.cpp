@@ -202,6 +202,6 @@ void Tide::ActiveStations::showpoints(int row) {
 void Tide::ActiveStations::setmark(int row, const QString& mark) {
     QString key = m_Stations[row];
     m_Marks[key] = Amplitude::parseDottedMeters(mark);
-    Database::SetMark(key, m_Marks[key].print());
+    Database::SetMark(Address::fromKey(key), m_Marks[key].print());
     stationChanged(key);
 }

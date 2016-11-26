@@ -85,7 +85,7 @@ const Station& WebFactory::instance(const QString& key) {
 
     int station_id = r.first()[0].toInt();
 
-    RunningSet* rset = HarmonicsCreator::CreateConstituents(station_id, 2.0);
+    RunningSet* rset = HarmonicsCreator::CreateConstituents(station_id);
     if (!rset) {
         return m_Invalid;
     }
@@ -286,6 +286,7 @@ void WebFactory::storeStation(const QString& key, ClientProxy* client, const QVe
     client->whenFinished(s);
     delete client;
     // enforce new station instance
+    HarmonicsCreator::Delete(station_id);
     if (m_Loaded.contains(key)) {
         delete m_Loaded[key];
         m_Loaded.remove(key);

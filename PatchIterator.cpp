@@ -162,6 +162,15 @@ bool PatchIterator::nextPatch() {
     return true;
 }
 
+bool PatchIterator::lastPatch() {
+    if (m_Patches.isEmpty()) return false;
+    m_CurrentPatch = m_Patches.size() - 1;
+    m_CurrentEpoch = 0;
+    m_Step = data().step().seconds;
+    m_CurrentStamp = m_FirstStamp[data().epochs().at(m_CurrentEpoch)] - m_Step;
+    return true;
+}
+
 void PatchIterator::reset() {
     m_CurrentPatch = -1;
 }

@@ -6,8 +6,6 @@
 #include <QFile>
 #include <QMapIterator>
 #include <QStringList>
-//#include <Eigen/SparseCore>
-//#include <Eigen/SparseLU>
 #include <Eigen/Dense>
 
 #include "Speed.h"
@@ -16,7 +14,6 @@
 #include "HarmonicsCreator.h"
 #include "Database.h"
 #include "Amplitude.h"
-#include "ConstituentManager.h"
 
 using namespace Tide;
 
@@ -126,27 +123,22 @@ static Speed parseConstituent(const QStringList& parts, const QList<BC>& base) {
 }
 
 HarmonicsCreator::HarmonicsCreator():
-    m_I(0, 1), m_Data(0)
+    m_I(0, 1),
+    m_Data(0),
+    m_AmplitudeCut(0.005), // meters
+    m_SlowCut(0.2),
+    m_ResolutionCut(0.9),
+    m_AmplitudeDiffLowerCut(0.01),  // meters
+    m_AmplitudeDiffUpperCut(1.0),  // meters
+    m_MaxSampleSize(365*6*24)
 {
 
     Database::Control("create table if not exists constituents ("
                       "id       integer primary key, "
-                      "patch_id integer not null, "
+                      "epoch_id integer not null, "
                       "mode_id  integer not null, "
                       "rea real not null, "
                       "ima real not null)");
-
-    Database::Control("create table if not exists patches ("
-                      "id         integer primary key, "
-                      "station_id integer not null, "
-                      "start      integer not null, "
-                      "timedelta  integer not null, "
-                      "patchsize  integer not null)");
-
-    Database::Control("create table if not exists patchepochs ("
-                      "id       integer primary key, "
-                      "epoch_id integer not null, "
-                      "patch_id integer not null)");
 
     Database::Control("create table if not exists modes ("
                       "id    integer primary key, "
@@ -203,144 +195,219 @@ HarmonicsCreator* HarmonicsCreator::instance() {
     return hc;
 }
 
+
+void HarmonicsCreator::config(const QString& key, const QVariant& value) {
+    bool ok;
+    qDebug().noquote() << "configuring " << key << "= " << value.toDouble();
+    if (key.toLower() == "resolutioncut") {
+        double v = value.toDouble(&ok);
+        if (ok) {
+            m_ResolutionCut = v;
+        } else {
+            qDebug().noquote() << key << ": invalid value";
+        }
+        return;
+    }
+    if (key.toLower() == "amplitudecut") {
+        double v = value.toDouble(&ok);
+        if (ok) {
+            m_AmplitudeCut = v;
+        } else {
+            qDebug().noquote() << key << ": invalid value";
+        }
+        return;
+    }
+    if (key.toLower() == "slowcut") {
+        double v = value.toDouble(&ok);
+        if (ok) {
+            m_SlowCut = v;
+        } else {
+            qDebug().noquote() << key << ": invalid value";
+        }
+        return;
+    }
+    if (key.toLower() == "amplitudedifflowercut") {
+        double v = value.toDouble(&ok);
+        if (ok) {
+            m_AmplitudeDiffLowerCut = v;
+        } else {
+            qDebug().noquote() << key << ": invalid value";
+        }
+        return;
+    }
+    if (key.toLower() == "amplitudediffuppercut") {
+        double v = value.toDouble(&ok);
+        if (ok) {
+            m_AmplitudeDiffUpperCut = v;
+        } else {
+            qDebug().noquote() << key << ": invalid value";
+        }
+        return;
+    }
+    if (key.toLower() == "maxsamplesize") {
+        db_int_t v = value.toLongLong(&ok);
+        if (ok) {
+            m_MaxSampleSize = v;
+        } else {
+            qDebug().noquote() << key << ": invalid value";
+        }
+        return;
+    }
+    qDebug().noquote() << key << ": not found";
+}
+
+
 void HarmonicsCreator::reset(db_int_t station_id) {
     m_Averages.clear();
-    m_PatchData.clear();
 
-    ConstituentManager mgr(station_id);
+    delete m_Data;
+    m_Data = new PatchIterator(station_id);
+
+    if (!m_Data->lastPatch()) return;
+    m_Patch = m_Data->data();
+
+
+    Timestamp start = m_Patch.start();
     Coefficients sums;
-    while (mgr.next()) {
-        Patch patch = mgr.patch();
-        Coefficients coeffs = mgr.constituents();
-
-        m_PatchData.append(patch);
-
-        CoefficientsIterator it(coeffs);
-        double delta = patch.offset().seconds;
-        while (it.hasNext()) {
-            it.next();
-            if (!m_KnownNames.contains(it.key())) continue;
-            double w = it.key().radiansPerSecond;
-            sums[it.key()] += it.value() * exp(Complex(0, - delta * w));
+    Speeds modes = m_KnownNames.keys().toVector();
+    while (m_Data->next()) {
+        double a = m_Data->reading();
+        double t = (m_Data->stamp() - start).seconds;
+        foreach (Speed q, modes) {
+            double w = q.radiansPerSecond;
+            sums[q] += a * exp(Complex(0, - w * t));
         }
     }
 
-    m_N = 0;
-
-    for (int p = 0; p < m_PatchData.size(); p++) {
-        m_N += m_PatchData[p].size();
-    }
 
     CoefficientsIterator it(sums);
     while (it.hasNext()) {
         it.next();
-        m_Averages[it.key()] = it.value() / m_N;
+        m_Averages[it.key()] = it.value() / m_Patch.size();
     }
 
-    delete m_Data;
-    m_Data = new PatchIterator(station_id);
 }
 
 
-RunningSet* HarmonicsCreator::average(double b0) {
+void HarmonicsCreator::average(Coefficients& coeffs, Timestamp& epoch) {
 
-    if (m_Averages.isEmpty()) return 0;
+    if (m_Averages.isEmpty()) return;
 
-    Coefficients coeffs = solve(0.9, 0.0025, b0);
-    qDebug() << "error estimate = " << errorEstimate(coeffs);
+    coeffs = solve();
 
     Speed z = Speed::fromRadiansPerSecond(0);
     if (!coeffs.contains(z)) {
-        return 0;
+        coeffs.clear();
+        return;
     }
 
-    Amplitude datum = Amplitude::fromDottedMeters(coeffs[z].x, 0);
-    RunningSet* rset = new RunningSet(m_Data->epoch(), datum);
-
-    CoefficientsIterator m(coeffs);
-    while (m.hasNext()) {
-        m.next();
-        if (m.key() == z) continue;
-        rset->append(m.value(), m.key());
-    }
-
-    return rset;
+    epoch = m_Patch.start();
 }
 
-//typedef Eigen::SparseMatrix<std::complex<double>> SpMat; // declares a column-major sparse matrix type of complex
-//typedef Eigen::Triplet<std::complex<double>> A;
 
-static bool Diag = true;
-// static bool Off = false;
+HarmonicsCreator::Coefficients HarmonicsCreator::solve() {
 
-typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic> MT;
-typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> VT;
-
-HarmonicsCreator::Coefficients HarmonicsCreator::solve(double cutCeil, double cutFloor, double b0) {
-
-    QVector<QVector<Speed>> modes = selectModes(cutCeil, cutFloor, b0);
+    Speeds modes = selectModes();
     Coefficients coeffs;
-    Speed z = Speed::fromRadiansPerSecond(0);
-    coeffs[z] = m_Averages[z];
+    int maxLoops = 5;
 
-    foreach (QVector<Speed> group, modes) {
-        if (group.length() == 1) {
-            Speed q = group.first();
-            if (q != z) {
-                coeffs[q] = 2 * m_Averages[q];
+
+    coeffs = fitModes(modes);
+    qDebug() << "number of modes" << modes.length();
+    qDebug() << "error estimate = " << errorEstimate(coeffs);
+    bool zeros = true;
+    int loopCount = 0;
+    while (zeros && loopCount++ < maxLoops) {
+        zeros = false;
+        modes.clear();
+        foreach (Speed q, coeffs.keys()) {
+            if (coeffs[q].mod() < m_AmplitudeCut) {
+                zeros = true;
+                continue;
             }
+            modes.append(q);
+        }
+        if (zeros) {
+            coeffs = fitModes(modes);
+            qDebug() << "number of modes" << modes.length();
+            qDebug() << "error estimate = " << errorEstimate(coeffs);
+        }
+    }
+    return coeffs;
+}
+
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> M_T;
+typedef Eigen::Matrix<double, Eigen::Dynamic, 1> V_T;
+
+HarmonicsCreator::Coefficients HarmonicsCreator::fitModes(Speeds& selected) {
+    Speed z = Speed::fromRadiansPerSecond(0);
+    selected.removeAll(z);
+    Coefficients coeffs;
+    coeffs[z] = m_Averages[z];
+    int rows = m_Patch.size();
+    if (rows > m_MaxSampleSize) {
+        rows = m_MaxSampleSize;
+    }
+    int firstReading = m_Patch.size() - rows;
+
+    int cols = 2 * selected.size();
+    double datum = coeffs[z].x;
+    M_T A(rows, cols);
+    V_T B(rows);
+    m_Data->lastPatch();
+    int row = 0;
+    while (m_Data->next()) {
+        if (row < firstReading) {
+            row++;
             continue;
         }
-        int n = group.length();
-        MT A(n, n);
-        VT B(n);
-        for (int q = 0; q < n; q++) {
-            Speed w1 = group[q];
-            A(q, q) = 1;
-            B(q) = m_Averages[w1].complex();
-            for (int p = q + 1; p < n; p++) {
-                Speed w2 = group[p];
-                A(q, p) = computeElement(w1, w2, Diag).complex();
-            }
+        B(row - firstReading) = m_Data->reading() - datum;
+        for (int col = 0; col < cols / 2; col++) {
+            double x = selected[col].radiansPerSecond * m_Patch.step().seconds * row;
+            A(row - firstReading, 2 * col) = std::cos(x);
+            A(row - firstReading, 2 * col + 1) = - std::sin(x);
         }
-        A = Eigen::SelfAdjointView<Eigen::MatrixXcd, Eigen::Upper>(A);
-
-        Eigen::VectorXcd X = A.colPivHouseholderQr().solve(B);
-        qDebug() << "error estimate of inversion" << (A*X - B).norm() / B.norm();
-        for (int q = 0; q < n; q++) {
-            Speed w1 = group[q];
-            coeffs[w1] = 2 * Complex(B(q));
-        }
+        row++;
+    }
+    V_T X = A.fullPivHouseholderQr().solve(B);
+    for (int col = 0; col < cols / 2; col++) {
+        Speed q = selected[col];
+        Complex coeff(X(2*col), X(2*col+1));
+        coeffs[q] = coeff;
+        qDebug().noquote() << "coeff" << m_KnownNames[q] << q.dph() << coeffs[q].mod();
     }
 
     return coeffs;
 }
 
-QVector<QVector<Speed>> HarmonicsCreator::selectModes(double cutCeil, double cutFloor, double b0) {
-    QVector<Speed> modes = m_KnownNames.keys().toVector();
+static bool Diag = true;
+
+
+HarmonicsCreator::Speeds HarmonicsCreator::selectModes() {
+    Speeds modes = m_KnownNames.keys().toVector();
     Speed z = Speed::fromRadiansPerSecond(0);
 
-    QVector<Speed> pass_1;
+    Speeds pass_1;
     pass_1.append(z);
     foreach (Speed q, modes) {
-        if (!m_Averages.contains(q) || m_Averages[q].mod() < cutFloor || q == z) {
+        if (!m_Averages.contains(q) || m_Averages[q].mod() < m_AmplitudeCut / 2 || q == z) {
             if (m_Averages.contains(q) && q != z) {
-                qDebug().noquote() << "skipping" << m_KnownNames[q] << q.dph() << m_Averages[q].mod();
+                qDebug().noquote() << "Skipping minor mode" << m_KnownNames[q] << q.dph() << m_Averages[q].mod();
             }
             continue;
         }
         pass_1.append(q);
     }
 
-    qDebug() << "number of mode after pass 1" << pass_1.length();
+    qDebug() << "number of modes after pass 1" << pass_1.length();
 
 
-    QVector<Speed> pass_2;
+    Speeds pass_2;
     foreach (Speed q, pass_1) {
         Complex elem  = computeElement(z, q, Diag);
-        if (elem.mod() > 0.1) {
+        if (elem.mod() > m_SlowCut) {
             if (q != z) {
-                qDebug().noquote() << "TODO: Long wave"  << m_KnownNames[q] << q.dph() << elem.mod();
+                qDebug().noquote() << "Skipping long wave"  << m_KnownNames[q] << q.dph() << elem.mod();
             }
             continue;
         }
@@ -349,30 +416,33 @@ QVector<QVector<Speed>> HarmonicsCreator::selectModes(double cutCeil, double cut
 
     qDebug() << "number of modes after pass 2" << pass_2.length();
 
-    QVector<QVector<Speed>> grouping;
-    grouping.append(QVector<Speed>());
+    QVector<Speeds> grouping;
+    grouping.append(Speeds());
     grouping.last().append(z);
     foreach (Speed q, pass_2) {
         Complex elem  = computeElement(grouping.last().last(), q, Diag);
-        if (elem.mod() > cutCeil) {
+        if (elem.mod() > m_ResolutionCut) {
             grouping.last().append(q);
         } else {
-            grouping.append(QVector<Speed>());
+            grouping.append(Speeds());
             grouping.last().append(q);
         }
     }
 
-    QVector<QVector<Speed>> filtered;
-    foreach (QVector<Speed> group, grouping) {
+    QVector<Speeds> filtered;
+    foreach (Speeds group, grouping) {
         bool done = false;
-        QVector<Speed> modes = group;
+        Speeds modes = group;
         while (!done && modes.length() > 1) {
-            done = checkModes(modes, b0);
+            done = checkModes(modes);
         }
         filtered.append(modes);
     }
 
-    foreach (QVector<Speed> group, filtered) {
+    qDebug() << "number of groups" << filtered.length();
+
+    // Just debug logging in this loop
+    foreach (Speeds group, filtered) {
         Speed q = group.first();
         Speed p = group.last();
         qDebug().noquote() << "group"  << m_KnownNames[q] << q.dph() << " -> " << m_KnownNames[p] << p.dph() << ", length" << group.length();
@@ -380,32 +450,36 @@ QVector<QVector<Speed>> HarmonicsCreator::selectModes(double cutCeil, double cut
         foreach (Speed w, group) {
             avs += QString("%1 ").arg(m_Averages[w].mod(), 6, 'f', 4);
             if (group.length() == 1) continue;
-            // QString corrs1 = "";
-            QString corrs2 = "";
+            QString corrs = "";
             foreach (Speed w2, group) {
                 if (w2 > w) {
                     Complex r  = computeElement(w, w2, Diag);
                     Complex dB = (m_Averages[w2] - m_Averages[w]);
                     Complex B0 = (m_Averages[w2] + m_Averages[w]);
-                    // corrs1 += QString("%1 ").arg(dB.mod() / (1-r.mod()), 6, 'g', 4);
-                    corrs2 += QString("%1 ").arg((dB/B0 + r.y * m_I).mod() / (1-r.x), 6, 'g', 4);
+                    corrs += QString("%1 ").arg((dB/B0 + r.y * m_I).mod() / (1-r.x), 6, 'g', 4);
                 }
             }
-            if (corrs2.isEmpty()) continue;
-            // qDebug().noquote() << corrs1;
-            qDebug().noquote() << corrs2;
-
+            if (corrs.isEmpty()) continue;
+            qDebug().noquote() << corrs;
         }
         qDebug().noquote() << avs;
     }
 
-    qDebug() << "number of groups" << grouping.length();
 
 
-    return filtered;
+    Speeds selected;
+
+    foreach (Speeds group, filtered) {
+        foreach (Speed q, group) {
+            selected.append(q);
+        }
+    }
+
+
+    return selected;
 }
 
-bool HarmonicsCreator::checkModes(QVector<Speed>& modes, double b0) {
+bool HarmonicsCreator::checkModes(Speeds& modes) {
     Speed q = modes.first();
     Speed p = modes.last();
     qDebug().noquote() << "checkModes"  << m_KnownNames[q] << q.dph() << " -> " << m_KnownNames[p] << p.dph() << ", length" << modes.length();
@@ -416,7 +490,7 @@ bool HarmonicsCreator::checkModes(QVector<Speed>& modes, double b0) {
                 Complex dB = (m_Averages[w2] - m_Averages[w]);
                 Complex B0 = (m_Averages[w2] + m_Averages[w]);
                 double corr = (dB/B0 + r.y * m_I).mod() / (1-r.x);
-                if (corr > b0) {
+                if (corr < m_AmplitudeDiffLowerCut || corr > m_AmplitudeDiffUpperCut) {
                     if (m_Averages[w2].mod() < m_Averages[w].mod()) {
                         qDebug().noquote() << "removing"  << m_KnownNames[w2] << w2.dph() << m_Averages[w2].mod();
                         modes.removeOne(w2);
@@ -441,7 +515,7 @@ double HarmonicsCreator::errorEstimate(const Coefficients& coeffs) {
     }
 
     Amplitude datum = Amplitude::fromDottedMeters(coeffs[z].x, 0);
-    RunningSet rset(m_Data->epoch(), datum);
+    RunningSet rset(m_Patch.start(), datum);
 
     CoefficientsIterator m(coeffs);
     while (m.hasNext()) {
@@ -452,15 +526,13 @@ double HarmonicsCreator::errorEstimate(const Coefficients& coeffs) {
 
     double squareSum = 0;
 
-    m_Data->reset();
-    while (m_Data->nextPatch()) {
-        while (m_Data->next()) {
-            double d = m_Data->reading() - (rset.datum() + rset.tideDerivative(m_Data->stamp(), 0)).value;
-            squareSum += d * d;
-        }
+    m_Data->lastPatch();
+    while (m_Data->next()) {
+        double d = m_Data->reading() - (rset.datum() + rset.tideDerivative(m_Data->stamp(), 0)).value;
+        squareSum += d * d;
     }
 
-    return ::sqrt(squareSum) / m_N;
+    return ::sqrt(squareSum) / m_Patch.size();
 }
 
 
@@ -494,11 +566,7 @@ void HarmonicsCreator::printMatrix(const ModeMatrix& D) {
 
 Complex HarmonicsCreator::computeElement(const Speed& q, const Speed& p, bool diag) const {
     double mul = diag ? -1 : 1;
-    Complex sum(0, 0);
-    foreach (Patch patch, m_PatchData) {
-        sum += patch.size() / m_N * coeff(q.radiansPerSecond + mul * p.radiansPerSecond, patch);
-    }
-    return sum;
+    return coeff(q.radiansPerSecond + mul * p.radiansPerSecond);
 }
 
 void HarmonicsCreator::computeMatrix(ModeMatrix &m, bool diag) const {
@@ -508,19 +576,15 @@ void HarmonicsCreator::computeMatrix(ModeMatrix &m, bool diag) const {
     foreach (Speed q, modes) {
         foreach (Speed p, modes) {
             if (p < q) continue;
-            Complex sum(0, 0);
-            foreach (Patch patch, m_PatchData) {
-                sum += patch.size() / m_N * coeff(q.radiansPerSecond + mul * p.radiansPerSecond, patch);
-            }
-            m[q][p] = sum;
+            m[q][p] = coeff(q.radiansPerSecond + mul * p.radiansPerSecond);
         }
     }
 }
 
-Complex HarmonicsCreator::coeff(double omega, const Patch &patch) const {
-    double x = patch.step().seconds * omega;
-    double beta = double(patch.offset().seconds) / patch.step().seconds + 0.5 * (patch.size() - 1);
-    return exp(Complex(0, - beta * x)) * factor(x, patch.size());
+Complex HarmonicsCreator::coeff(double omega) const {
+    double x = m_Patch.step().seconds * omega;
+    double beta = double(m_Patch.offset().seconds) / m_Patch.step().seconds + 0.5 * (m_Patch.size() - 1);
+    return exp(Complex(0, - beta * x)) * factor(x, m_Patch.size());
 }
 
 double HarmonicsCreator::factor(double x, unsigned n) const {
@@ -529,12 +593,12 @@ double HarmonicsCreator::factor(double x, unsigned n) const {
     double eps = 0.001 / n;
     int lo = int(r);
     if (r - lo < eps) {
-        if ((lo * (n - 1)) % 2) return 1;
+        if ((lo * (n - 1)) % 2 == 0) return 1;
         return -1;
     }
     int up = int(r+1);
     if (up - r < eps) {
-        if ((up * (n - 1)) % 2) return 1;
+        if ((up * (n - 1)) % 2 == 0) return 1;
         return -1;
     }
     return sin(0.5 * n * x) / sin(0.5 * x) / n;
@@ -565,10 +629,112 @@ void HarmonicsCreator::checkDBIntegrity() {
     Database::Commit();
 }
 
-Tide::RunningSet* HarmonicsCreator::CreateConstituents(int station_id, double cutOff) {
-    instance()->reset(station_id);
-    return instance()->average(cutOff);
+void HarmonicsCreator::select(db_int_t station_id, Coefficients& coeffs, Timestamp& epoch) {
+    QVariantList vars;
+    vars << station_id;
+    QList<QVector<QVariant>> r = Database::Query("select e.id, e.start, m.omega, c.rea, c.ima from constituents c "
+                                                 "join modes m on m.id=c.mode_id join epochs e on e.id=c.epoch_id "
+                                                 "where e.station_id=?", vars);
+
+    // just in case there are several sets per station
+    QMap<Timestamp, db_int_t> epochs;
+    QMap<db_int_t, Coefficients> c;
+    foreach (QVector<QVariant> row, r) {
+        db_int_t epoch_id = row[0].toInt();
+        Timestamp start = Timestamp::fromPosixTime(row[1].toInt());
+        epochs[start] = epoch_id;
+        Speed mode = Speed::fromRadiansPerSecond(row[2].toDouble());
+        double x = row[3].toDouble();
+        double y = row[4].toDouble();
+        c[epoch_id][mode] = Complex(x, y);
+    }
+    if (!epochs.isEmpty()) {
+        db_int_t last_epoch_id = epochs.last();
+        epoch = epochs.key(last_epoch_id);
+        coeffs = c[last_epoch_id];
+    }
 }
 
+void HarmonicsCreator::insert(db_int_t station_id, const Coefficients& coeffs, const Timestamp& epoch) {
+    QVariantList vars;
+    vars << station_id << epoch.posix();
+    QList<QVector<QVariant>> r = Database::Query("select id from epochs where station_id=? and start=?", vars);
+    if (r.length() != 1) {
+        qDebug() << "FATAL: unique epoch for" << station_id << "and" << epoch.print() << "not found, aborting insert";
+        return;
+    }
+    db_int_t epoch_id = r.first().first().toInt();
+    vars.clear();
 
+    QMap<db_int_t, Complex> values;
+
+    r = Database::Query("select id, name from modes");
+    foreach (QVector<QVariant> row, r) {
+        db_int_t mode_id = row[0].toLongLong();
+        Speed q = m_KnownModes[row[1].toString()];
+        if (coeffs.contains(q)) {
+            values[mode_id] = coeffs[q];
+        }
+    }
+
+    if (values.size() != coeffs.size()) {
+        qDebug() << "FATAL: all modes not found, aborting insert";
+        return;
+    }
+
+    Database::Transaction();
+    QMapIterator<db_int_t, Complex> it(values);
+    while (it.hasNext()) {
+        it.next();
+        vars.clear();
+        vars << epoch_id << it.key() << it.value().x << it.value().y;
+        Database::Control("insert into constituents (epoch_id, mode_id, rea, ima) values (?, ?, ?, ?)", vars);
+    }
+    Database::Commit();
+}
+
+Tide::RunningSet* HarmonicsCreator::CreateConstituents(int station_id) {
+
+
+    Coefficients coeffs;
+    Timestamp epoch;
+
+    Speed z = Speed::fromRadiansPerSecond(0);
+
+    instance()->select(station_id, coeffs, epoch);
+
+    if (coeffs.isEmpty()) {
+        instance()->reset(station_id);
+        instance()->average(coeffs, epoch);
+        if (coeffs.contains(z)) {
+            instance()->insert(station_id, coeffs, epoch);
+        }
+    }
+
+    if (!coeffs.contains(z)) {
+        return 0;
+    }
+
+    Amplitude datum = Amplitude::fromDottedMeters(coeffs[z].x, 0);
+    RunningSet* rset = new RunningSet(epoch, datum);
+
+    CoefficientsIterator m(coeffs);
+    while (m.hasNext()) {
+        m.next();
+        if (m.key() == z) continue;
+        rset->append(m.value(), m.key());
+    }
+
+    return rset;
+}
+
+void HarmonicsCreator::Config(const QString& key, const QVariant& value) {
+    instance()->config(key, value);
+}
+
+void HarmonicsCreator::Delete(db_int_t station_id) {
+    QVariantList vars;
+    vars << station_id;
+    Database::Control("delete from constituents where epoch_id in (select id from epochs where station_id=?)", vars);
+}
 

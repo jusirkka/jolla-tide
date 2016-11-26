@@ -18,6 +18,7 @@
 #include <qwt_date_scale_draw.h>
 
 #include <QMouseEvent>
+#include <QApplication>
 #include <fftw3.h>
 
 using namespace Tide;
@@ -35,9 +36,7 @@ PointsWindow::PointsWindow(const Address& addr, const Station& station):
     int station_id = Database::StationID(addr);
     PatchIterator points(station_id);
 
-    while (points.nextPatch()) {
-        stamps.clear(); // only last patch
-        orig.clear();
+    if (points.lastPatch()) {
         while (points.next()) {
             stamps.append(points.stamp());
             orig.append(points.reading());
@@ -56,7 +55,7 @@ PointsWindow::PointsWindow(const Address& addr, const Station& station):
 }
 
 
-PointsWindow::PointsWindow(int station_id, double cutoff):
+PointsWindow::PointsWindow(int station_id):
     QStackedWidget()
 {
 
@@ -66,16 +65,14 @@ PointsWindow::PointsWindow(int station_id, double cutoff):
 
     PatchIterator points(station_id);
 
-    while (points.nextPatch()) {
-        stamps.clear(); // only last patch
-        orig.clear();
+    if (points.lastPatch()) {
         while (points.next()) {
             stamps.append(points.stamp());
             orig.append(points.reading());
         }
     }
 
-    Tide::RunningSet* rset = Tide::HarmonicsCreator::CreateConstituents(station_id, cutoff);
+    Tide::RunningSet* rset = Tide::HarmonicsCreator::CreateConstituents(station_id);
 
 
     foreach (Timestamp t, stamps) {
@@ -94,6 +91,12 @@ void PointsWindow::mousePressEvent(QMouseEvent*) {
     int curr = currentIndex();
     int c = count();
     setCurrentIndex((curr + 1) % c);
+}
+
+void PointsWindow::keyPressEvent(QKeyEvent* ev) {
+    if (ev->key() == Qt::Key_Escape) {
+       close();
+    }
 }
 
 GraphFrame::GraphFrame(const QString &name): QwtPlot(QwtText(name)) {
@@ -174,7 +177,7 @@ TimeDomain::TimeDomain(const QString& station, const QVector<Timestamp>& stamps,
 FrequencyDomain::FrequencyDomain(const QString& station, const QVector<Timestamp>& stamps, const QVector<double>& orig, const QVector<double>& gen):
     GraphFrame(QString("%1: Frequency domain").arg(station))
 {
-    setAxisScale(QwtPlot::yLeft, 0, 200);
+    setAxisScale(QwtPlot::yLeft, 0, 4);
     setAxisScale(QwtPlot::xBottom, 0, 200);
 
     int count = 2 * (stamps.size() / 2);
@@ -190,7 +193,7 @@ FrequencyDomain::FrequencyDomain(const QString& station, const QVector<Timestamp
 
     QVector<double> korig;
     for (int k = 0; k < count / 2; k++) {
-        korig.append(Complex(cp[k][0], cp[k][1]).mod());
+        korig.append(std::log10(1 + Complex(cp[k][0], cp[k][1]).mod()));
     }
 
     for(int i = 0; i < count; i++) {
@@ -201,7 +204,7 @@ FrequencyDomain::FrequencyDomain(const QString& station, const QVector<Timestamp
 
     QVector<double> kgen;
     for (int k = 0; k < count / 2; k++) {
-        kgen.append(Complex(cp[k][0], cp[k][1]).mod());
+        kgen.append(std::log10(1 + Complex(cp[k][0], cp[k][1]).mod()));
     }
 
     fftw_destroy_plan(plan);

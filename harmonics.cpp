@@ -9,13 +9,23 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     bool ok;
-    if (argc < 3) return 1;
+    if (argc < 2) return 1;
     int station_id = QString(argv[1]).toInt(&ok);
     if (!ok) return 1;
-    double cutOff = QString(argv[2]).toDouble(&ok);
-    if (!ok) return 1;
-    Tide::PointsWindow w(station_id, cutOff);
-    w.resize(1600, 800);
+    QString key;
+    double value;
+    for (int k = 2; k < argc; k++) {
+        if (k % 2 == 0) {
+            key = QString(argv[k]);
+        } else {
+            value = QString(argv[k]).toDouble(&ok);
+            if (!ok) return 1;
+            Tide::HarmonicsCreator::Config(key, value);
+        }
+    }
+    Tide::HarmonicsCreator::Delete(station_id);
+    Tide::PointsWindow w(station_id);
+    w.resize(1600, 700);
     w.show();
     return app.exec();
 }

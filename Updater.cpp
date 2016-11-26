@@ -82,6 +82,11 @@ void Updater::updated(const Address &address, const Status &status) {
     m_Pending.removeAll(address);
     if (status.code == Status::SUCCESS) {
         m_EmitReady = true;
+        // this computes new constituentset (webfactory)
+        const Station& st = m_Factories[address.factory]->instance(address.station);
+        if (st.isvalid()) {
+            qDebug().noquote() << st.name() << "is ready";
+        }
     }
 
     if (m_Pending.isEmpty()) {

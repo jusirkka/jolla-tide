@@ -52,6 +52,7 @@ public:
     Patch data() const;
     bool next();
     bool nextPatch();
+    bool lastPatch();
     void reset();
     Timestamp lastDataPoint();
     Timestamp epoch() const;

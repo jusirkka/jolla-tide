@@ -42,11 +42,12 @@ class PointsWindow : public QStackedWidget {
 public:
 
     PointsWindow(const Address& address, const Station& station);
-    PointsWindow(int station_id, double cutOff);
+    PointsWindow(int station_id);
 
 protected:
 
-    void mousePressEvent(QMouseEvent* event);
+    void mousePressEvent(QMouseEvent* ev);
+    void keyPressEvent(QKeyEvent* ev);
 
 private:
 

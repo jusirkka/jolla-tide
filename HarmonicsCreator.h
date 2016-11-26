@@ -5,7 +5,7 @@
 #include <QMap>
 #include <QVector>
 #include "RunningSet.h"
-#include "ConstituentManager.h"
+#include "PatchIterator.h"
 
 namespace Tide {
 
@@ -31,8 +31,12 @@ public:
 
     typedef QVector<double> LevelData;
 
-    static RunningSet* CreateConstituents(int station_id, double cutOff);
+    typedef QVector<Speed> Speeds;
+
+    static RunningSet* CreateConstituents(int station_id);
     static const ModeName& Modes();
+    static void Config(const QString& key, const QVariant& value);
+    static void Delete(db_int_t station_id);
 
 
 
@@ -46,22 +50,27 @@ private:
 
     static HarmonicsCreator* instance();
 
+    void config(const QString& key, const QVariant& value);
+
     ModeSpeed modes() const {return m_KnownModes;}
     ModeName names() const {return m_KnownNames;}
 
     void reset(db_int_t station_id);
-    RunningSet* average(double b0);
+    void average(Coefficients& coeffs, Timestamp& epoch);
     double errorEstimate(const Coefficients& coeffs);
-    Coefficients solve(double cutCeil, double cutFloor, double b0);
-    QVector<QVector<Speed>> selectModes(double cutCeil, double cutFloor, double b0);
-    bool checkModes(QVector<Speed>& modes, double b0);
+    Coefficients solve();
+    Speeds selectModes();
+    bool checkModes(Speeds& modes);
     void checkDBIntegrity();
+    void select(db_int_t station_id, Coefficients& coeffs, Timestamp& epoch);
+    void insert(db_int_t station_id, const Coefficients& coeffs, const Timestamp& epoch);
 
     void printMatrix(const ModeMatrix& m);
     void computeMatrix(ModeMatrix& m, bool diag = true) const;
     Complex computeElement(const Speed& q, const Speed& p, bool diag) const;
-    Complex coeff(double omega, const Patch& patch) const;
+    Complex coeff(double omega) const;
     double factor(double x, unsigned n) const;
+    Coefficients fitModes(Speeds& selected);
 
 private:
 
@@ -69,10 +78,15 @@ private:
     ModeSpeed m_KnownModes;
     ModeName m_KnownNames;
     Coefficients m_Averages;
-    PatchData m_PatchData;
+    Patch m_Patch;
     PatchIterator* m_Data;
-    double m_N;
 
+    double m_AmplitudeCut;
+    double m_SlowCut;
+    double m_ResolutionCut;
+    double m_AmplitudeDiffLowerCut;
+    double m_AmplitudeDiffUpperCut;
+    db_int_t m_MaxSampleSize;
 
 };
 
