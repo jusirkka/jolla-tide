@@ -198,13 +198,13 @@ HarmonicsCreator* HarmonicsCreator::instance() {
 
 void HarmonicsCreator::config(const QString& key, const QVariant& value) {
     bool ok;
-    qDebug().noquote() << "configuring " << key << "= " << value.toDouble();
+    qDebug() << "configuring " << key << "= " << value.toDouble();
     if (key.toLower() == "resolutioncut") {
         double v = value.toDouble(&ok);
         if (ok) {
             m_ResolutionCut = v;
         } else {
-            qDebug().noquote() << key << ": invalid value";
+            qDebug() << key << ": invalid value";
         }
         return;
     }
@@ -213,7 +213,7 @@ void HarmonicsCreator::config(const QString& key, const QVariant& value) {
         if (ok) {
             m_AmplitudeCut = v;
         } else {
-            qDebug().noquote() << key << ": invalid value";
+            qDebug() << key << ": invalid value";
         }
         return;
     }
@@ -222,7 +222,7 @@ void HarmonicsCreator::config(const QString& key, const QVariant& value) {
         if (ok) {
             m_SlowCut = v;
         } else {
-            qDebug().noquote() << key << ": invalid value";
+            qDebug() << key << ": invalid value";
         }
         return;
     }
@@ -231,7 +231,7 @@ void HarmonicsCreator::config(const QString& key, const QVariant& value) {
         if (ok) {
             m_AmplitudeDiffLowerCut = v;
         } else {
-            qDebug().noquote() << key << ": invalid value";
+            qDebug() << key << ": invalid value";
         }
         return;
     }
@@ -240,7 +240,7 @@ void HarmonicsCreator::config(const QString& key, const QVariant& value) {
         if (ok) {
             m_AmplitudeDiffUpperCut = v;
         } else {
-            qDebug().noquote() << key << ": invalid value";
+            qDebug() << key << ": invalid value";
         }
         return;
     }
@@ -249,11 +249,11 @@ void HarmonicsCreator::config(const QString& key, const QVariant& value) {
         if (ok) {
             m_MaxSampleSize = v;
         } else {
-            qDebug().noquote() << key << ": invalid value";
+            qDebug() << key << ": invalid value";
         }
         return;
     }
-    qDebug().noquote() << key << ": not found";
+    qDebug() << key << ": not found";
 }
 
 
@@ -341,7 +341,8 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, 1> V_T;
 
 HarmonicsCreator::Coefficients HarmonicsCreator::fitModes(Speeds& selected) {
     Speed z = Speed::fromRadiansPerSecond(0);
-    selected.removeAll(z);
+    int idx = selected.indexOf(z);
+    if (idx != -1) selected.remove(idx);
     Coefficients coeffs;
     coeffs[z] = m_Averages[z];
     int rows = m_Patch.size();
@@ -374,7 +375,7 @@ HarmonicsCreator::Coefficients HarmonicsCreator::fitModes(Speeds& selected) {
         Speed q = selected[col];
         Complex coeff(X(2*col), X(2*col+1));
         coeffs[q] = coeff;
-        qDebug().noquote() << "coeff" << m_KnownNames[q] << q.dph() << coeffs[q].mod();
+        qDebug() << "coeff" << m_KnownNames[q] << q.dph() << coeffs[q].mod();
     }
 
     return coeffs;
@@ -392,7 +393,7 @@ HarmonicsCreator::Speeds HarmonicsCreator::selectModes() {
     foreach (Speed q, modes) {
         if (!m_Averages.contains(q) || m_Averages[q].mod() < m_AmplitudeCut / 2 || q == z) {
             if (m_Averages.contains(q) && q != z) {
-                qDebug().noquote() << "Skipping minor mode" << m_KnownNames[q] << q.dph() << m_Averages[q].mod();
+                qDebug() << "Skipping minor mode" << m_KnownNames[q] << q.dph() << m_Averages[q].mod();
             }
             continue;
         }
@@ -407,7 +408,7 @@ HarmonicsCreator::Speeds HarmonicsCreator::selectModes() {
         Complex elem  = computeElement(z, q, Diag);
         if (elem.mod() > m_SlowCut) {
             if (q != z) {
-                qDebug().noquote() << "Skipping long wave"  << m_KnownNames[q] << q.dph() << elem.mod();
+                qDebug() << "Skipping long wave"  << m_KnownNames[q] << q.dph() << elem.mod();
             }
             continue;
         }
@@ -445,7 +446,7 @@ HarmonicsCreator::Speeds HarmonicsCreator::selectModes() {
     foreach (Speeds group, filtered) {
         Speed q = group.first();
         Speed p = group.last();
-        qDebug().noquote() << "group"  << m_KnownNames[q] << q.dph() << " -> " << m_KnownNames[p] << p.dph() << ", length" << group.length();
+        qDebug() << "group"  << m_KnownNames[q] << q.dph() << " -> " << m_KnownNames[p] << p.dph() << ", length" << group.length();
         QString avs = "";
         foreach (Speed w, group) {
             avs += QString("%1 ").arg(m_Averages[w].mod(), 6, 'f', 4);
@@ -460,9 +461,9 @@ HarmonicsCreator::Speeds HarmonicsCreator::selectModes() {
                 }
             }
             if (corrs.isEmpty()) continue;
-            qDebug().noquote() << corrs;
+            qDebug() << corrs;
         }
-        qDebug().noquote() << avs;
+        qDebug() << avs;
     }
 
 
@@ -482,7 +483,7 @@ HarmonicsCreator::Speeds HarmonicsCreator::selectModes() {
 bool HarmonicsCreator::checkModes(Speeds& modes) {
     Speed q = modes.first();
     Speed p = modes.last();
-    qDebug().noquote() << "checkModes"  << m_KnownNames[q] << q.dph() << " -> " << m_KnownNames[p] << p.dph() << ", length" << modes.length();
+    qDebug() << "checkModes"  << m_KnownNames[q] << q.dph() << " -> " << m_KnownNames[p] << p.dph() << ", length" << modes.length();
     foreach (Speed w, modes) {
         foreach (Speed w2, modes) {
             if (w2 > w) {
@@ -492,11 +493,11 @@ bool HarmonicsCreator::checkModes(Speeds& modes) {
                 double corr = (dB/B0 + r.y * m_I).mod() / (1-r.x);
                 if (corr < m_AmplitudeDiffLowerCut || corr > m_AmplitudeDiffUpperCut) {
                     if (m_Averages[w2].mod() < m_Averages[w].mod()) {
-                        qDebug().noquote() << "removing"  << m_KnownNames[w2] << w2.dph() << m_Averages[w2].mod();
-                        modes.removeOne(w2);
+                        qDebug() << "removing"  << m_KnownNames[w2] << w2.dph() << m_Averages[w2].mod();
+                        modes.remove(modes.indexOf(w2));
                     } else {
-                        qDebug().noquote() << "removing"  << m_KnownNames[w] << w.dph() << m_Averages[w].mod();
-                        modes.removeOne(w);
+                        qDebug() << "removing"  << m_KnownNames[w] << w.dph() << m_Averages[w].mod();
+                        modes.remove(modes.indexOf(w));
                     }
                     return false;
                 }
@@ -559,7 +560,7 @@ void HarmonicsCreator::printMatrix(const ModeMatrix& D) {
         }
         art += "\n";
     }
-    qDebug().noquote() << art;
+    qDebug() << art;
 }
 
 

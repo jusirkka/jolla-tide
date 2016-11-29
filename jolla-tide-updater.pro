@@ -1,5 +1,9 @@
 TEMPLATE = app
 
+TARGET = jolla-tide-updater
+
+CONFIG += sailfishapp
+
 QT += sql xml dbus network
 DBUS_ADAPTORS += stationupdater.xml
 CONFIG += c++11
@@ -18,12 +22,14 @@ RESOURCES += harmonics.qrc
 
 LIBS += -lxml2
 
-INCLUDEPATH += /usr/include/libxml2 /usr/include/qwt6 /usr/include/eigen3
+INCLUDEPATH += /usr/include/libxml2 /usr/include/eigen3
 
+OTHER_FILES += rpm/jolla-tide-updater.yaml jolla-tide-updater.desktop
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH =
 
-# Default rules for deployment.
-include(deployment.pri)
+DISTFILES += \
+    jolla-tide-updater.yaml \
+    jolla-tide-updater.desktop
 

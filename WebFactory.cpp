@@ -281,10 +281,6 @@ void WebFactory::storeStation(const QString& key, ClientProxy* client, const QVe
     }
     Database::Commit();
 
-
-    Status s(Status::SUCCESS, QString("<ok/>"));
-    client->whenFinished(s);
-    delete client;
     // enforce new station instance
     HarmonicsCreator::Delete(station_id);
     if (m_Loaded.contains(key)) {
@@ -292,6 +288,10 @@ void WebFactory::storeStation(const QString& key, ClientProxy* client, const QVe
         m_Loaded.remove(key);
         m_LastDataPoint.remove(key);
     }
+
+    Status s(Status::SUCCESS, QString("<ok/>"));
+    client->whenFinished(s);
+    delete client;
 }
 
 

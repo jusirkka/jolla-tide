@@ -85,7 +85,7 @@ void Updater::updated(const Address &address, const Status &status) {
         // this computes new constituentset (webfactory)
         const Station& st = m_Factories[address.factory]->instance(address.station);
         if (st.isvalid()) {
-            qDebug().noquote() << st.name() << "is ready";
+            qDebug() << st.name() << "is ready";
         }
     }
 
