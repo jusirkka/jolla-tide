@@ -43,6 +43,7 @@ public:
         rawreading
     };
 
+    TideEvent(): time(), type(invalid), level() {}
 
     Timestamp time;
     Type type;

@@ -1,9 +1,12 @@
 #include "ActiveStations.h"
 #include "StationProvider.h"
 #include "Database.h"
-#include "PointsWindow.h"
 #include <QDebug>
 #include <QDateTime>
+
+#ifndef NO_POINTSWINDOW
+#include "PointsWindow.h"
+#endif
 
 Tide::ActiveStations::~ActiveStations() {}
 
@@ -191,6 +194,7 @@ void Tide::ActiveStations::movetotop(int row) {
 }
 
 
+#ifndef NO_POINTSWINDOW
 void Tide::ActiveStations::showpoints(int row) {
     QString key = m_Stations[row];
     const Station& s = m_Parent->station(key);
@@ -198,6 +202,7 @@ void Tide::ActiveStations::showpoints(int row) {
     w->resize(1600, 800);
     w->show();
 }
+#endif
 
 void Tide::ActiveStations::setmark(int row, const QString& mark) {
     QString key = m_Stations[row];
