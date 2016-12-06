@@ -1,28 +1,32 @@
 TEMPLATE = app
 
 QT += sql xml dbus network widgets
-DBUS_ADAPTORS += stationupdater.xml
 CONFIG += c++11
 
-SOURCES += harmonics.cpp Angle.cpp Amplitude.cpp Coordinates.cpp Interval.cpp  \
-    Timestamp.cpp Speed.cpp Year.cpp RunningSet.cpp Complex.cpp HarmonicsCreator.cpp \
-    Database.cpp Address.cpp PatchIterator.cpp PointsWindow.cpp \
-    Station.cpp Skycal.cpp
+TOP = ..
 
-HEADERS += Amplitude.h ConstituentSet.h Speed.h Year.h Angle.h Coordinates.h \
-    Interval.h Timestamp.h RunningSet.h HarmonicsCreator.h Complex.h \
-    Database.h Address.h PatchIterator.h PointsWindow.h \
-    Station.h Skycal.h
+TSRC = $${TOP}/src
+FILES = $${TOP}/files
 
-RESOURCES += harmonics.qrc
+DBUS_ADAPTORS += $${FILES}/stationupdater.xml
+
+SOURCES += $${TSRC}/Angle.cpp $${TSRC}/Amplitude.cpp $${TSRC}/Coordinates.cpp \
+    $${TSRC}/Interval.cpp $${TSRC}/Timestamp.cpp $${TSRC}/Speed.cpp $${TSRC}/Year.cpp \
+    $${TSRC}/RunningSet.cpp $${TSRC}/Complex.cpp $${TSRC}/HarmonicsCreator.cpp \
+    $${TSRC}/Database.cpp $${TSRC}/Address.cpp $${TSRC}/PatchIterator.cpp $${TSRC}/PointsWindow.cpp \
+    $${TSRC}/Station.cpp $${TSRC}/Skycal.cpp main.cpp
+
+HEADERS += $${TSRC}/Amplitude.h $${TSRC}/ConstituentSet.h $${TSRC}/Speed.h $${TSRC}/Year.h \
+    $${TSRC}/Angle.h $${TSRC}/Coordinates.h $${TSRC}/Interval.h $${TSRC}/Timestamp.h \
+    $${TSRC}/RunningSet.h $${TSRC}/HarmonicsCreator.h $${TSRC}/Complex.h \
+    $${TSRC}/Database.h $${TSRC}/Address.h $${TSRC}/PatchIterator.h $${TSRC}/PointsWindow.h \
+    $${TSRC}/Station.h $${TSRC}/Skycal.h
+
+RESOURCES += $${TOP}/harmonics.qrc
 
 LIBS += -lqwt6-qt5 -lfftw3
 
-INCLUDEPATH += /usr/include/eigen3 /usr/include/qwt6
+INCLUDEPATH += /usr/include/eigen3 /usr/include/qwt6 $${TSRC}
 
-# Additional import path used to resolve QML modules in Qt Creator's code model
-QML_IMPORT_PATH =
 
-# Default rules for deployment.
-include(deployment.pri)
 
