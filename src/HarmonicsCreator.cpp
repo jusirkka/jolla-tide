@@ -147,7 +147,7 @@ HarmonicsCreator::HarmonicsCreator():
 
 
     QMap<Speed, QString> modes;
-    QFile congen(":/congen_input.txt");
+    QFile congen(":/congen_input");
     QRegExp sep("\\s+");
     QStringList types;
     types << "Basic"  << "Doodson" << "Compound";

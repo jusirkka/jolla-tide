@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
 
     QTranslator translator;
-    qDebug() << translator.load(":/jolla-tide_en");
+    qDebug() << translator.load("jolla-tide_en", ":/");
     app.installTranslator(&translator);
 
     QList<Tide::StationFactory*> factories;
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    qmlRegisterSingletonType(QUrl("file:///home/jusirkka/src/jolla-tide/Theme.qml"), "net.kvanttiapina.tide.theme", 1, 0, "Theme");
+    qmlRegisterSingletonType(QUrl("qrc:///Theme.qml"), "net.kvanttiapina.tide.theme", 1, 0, "Theme");
 
     QQmlApplicationEngine engine;
     QQmlContext *ctxt = engine.rootContext();
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     Tide::Events events(&stations);
     ctxt->setContextProperty("eventsModel", &events);
 
-    engine.load(QUrl(QStringLiteral("tide.qml")));
+    engine.load(QUrl("qrc:///tide.qml"));
 
     return app.exec();
 }
