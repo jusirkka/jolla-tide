@@ -20,7 +20,6 @@ Builder: qtc5
 # This section specifies build dependencies that are resolved using pkconfig.
 # This is the preferred way of specifying build dependencies for your package.
 PkgConfigBR:
-  - sailfishapp >= 1.0.2
   - Qt5Core
   - Qt5Sql
   - Qt5Xml
@@ -32,15 +31,10 @@ PkgConfigBR:
 #   - package-needed-to-build
 
 # Runtime dependencies which are not automatically detected
-Requires:
-  - sailfishsilica-qt5 >= 0.10.9
 
 # All installed files
 Files:
-  - '%{_bindir}'
-  - '%{_datadir}/%{name}'
-  - '%{_datadir}/applications/%{name}.desktop'
-  - '%{_datadir}/icons/hicolor/86x86/apps/%{name}.png'
+  - '%{_bindir}/%{name}'
 
 # For more information about yaml and what's supported in Sailfish OS
 # build system, please see https://wiki.merproject.org/wiki/Spectacle

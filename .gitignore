@@ -1,7 +1,6 @@
 *~
 CMakeLists.txt.user
 jolla-tide.pro.user
-tests
 jolla-tide_en.qm
 icons/tide-first-quarter-moon.png 
 icons/tide-mark-rising.png
@@ -18,3 +17,6 @@ icons/tide-sunset.png
 icons/tide-mark-falling.png
 build-jolla-tide-ext3-Debug
 build-jolla-tide-updater-ext3-Debug
+build-jolla-tide-updater-MerSDK_SailfishOS_armv7hl-Debug
+Eigen
+jolla-tide-updater.spec
