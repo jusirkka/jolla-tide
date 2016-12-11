@@ -1,37 +1,63 @@
 TEMPLATE = app
 
 TARGET = jolla-tide
-CONFIG += sailfishapp c++11
+CONFIG += c++11 sailfishapp
 QT += qml quick sql xml dbus
-DBUS_INTERFACES += stationupdater.xml
 
 
-CONFIG += sailfishapp_i18n sailfishapp_i18n_idbased sailfishapp_i18n_unfinished
-TRANSLATIONS += silica/tide_en.ts
-i18n.path = /usr/share/jolla-tide/i18n
-i18n.files = i18n/translations_en.qm
-INSTALLS += i18n
+TOP = $${_PRO_FILE_PWD_}/../..
 
-SOURCES += mobile-app.cpp StationProvider.cpp Station.cpp Angle.cpp Amplitude.cpp Coordinates.cpp Interval.cpp  \
-    TideEvent.cpp Timestamp.cpp Speed.cpp Year.cpp RunningSet.cpp ActiveStations.cpp Events.cpp Complex.cpp HarmonicsCreator.cpp \
-    Database.cpp WebFactory.cpp TideForecast.cpp Skycal.cpp Factories.cpp Address.cpp PatchIterator.cpp
+TSRC = $${TOP}/src
+FILES = $${TOP}/files
 
-HEADERS += Amplitude.h ConstituentSet.h Speed.h StationProvider.h Year.h Angle.h Coordinates.h Station.h \
-    TideEvent.h Interval.h StationFactory.h Timestamp.h RunningSet.h ActiveStations.h Events.h HarmonicsCreator.h Complex.h \
-    Database.h WebFactory.h TideForecast.h Skycal.h Factories.h Address.h PatchIterator.h
+DBUS_INTERFACES += $${FILES}/stationupdater.xml
+
+
+TRANSLATIONS += jolla-tide-en.ts
+for(t, TRANSLATIONS) {
+    TRANSLATIONS_IN  += $${_PRO_FILE_PWD_}/$$t
+}
+
+
+qm.files = $$replace(TRANSLATIONS, \.ts, .qm)
+qm.path = /usr/share/$${TARGET}/translations
+qm.commands += [ \"$${OUT_PWD}\" != \"$${_PRO_FILE_PWD_}\" ] && cp $${TRANSLATIONS_IN} $${OUT_PWD}
+qm.commands += ; lupdate $${TSRC} $${_PRO_FILE_PWD_}/qml -ts $${TRANSLATIONS}; lrelease -idbased $${TRANSLATIONS}
+
+INSTALLS += qm
+
+
+
+SOURCES += $${TSRC}/Angle.cpp $${TSRC}/Amplitude.cpp $${TSRC}/Coordinates.cpp \
+    $${TSRC}/Interval.cpp $${TSRC}/Timestamp.cpp $${TSRC}/Speed.cpp $${TSRC}/Year.cpp \
+    $${TSRC}/RunningSet.cpp $${TSRC}/Complex.cpp $${TSRC}/HarmonicsCreator.cpp \
+    $${TSRC}/Database.cpp $${TSRC}/Address.cpp $${TSRC}/PatchIterator.cpp \
+    $${TSRC}/Station.cpp $${TSRC}/Skycal.cpp $${TSRC}/StationProvider.cpp $${TSRC}/TideEvent.cpp $${TSRC}/ActiveStations.cpp \
+    $${TSRC}/Events.cpp $${TSRC}/WebFactory.cpp $${TSRC}/TideForecast.cpp $${TSRC}/Factories.cpp \
+    CoverModel.cpp main.cpp
+
+
+HEADERS += $${TSRC}/Amplitude.h $${TSRC}/ConstituentSet.h $${TSRC}/Speed.h $${TSRC}/Year.h \
+    $${TSRC}/Angle.h $${TSRC}/Coordinates.h $${TSRC}/Interval.h $${TSRC}/Timestamp.h \
+    $${TSRC}/RunningSet.h $${TSRC}/HarmonicsCreator.h $${TSRC}/Complex.h \
+    $${TSRC}/Database.h $${TSRC}/Address.h $${TSRC}/PatchIterator.h \
+    $${TSRC}/Station.h $${TSRC}/Skycal.h $${TSRC}/StationProvider.h $${TSRC}/TideEvent.h $${TSRC}/StationFactory.h \
+    $${TSRC}/ActiveStations.h $${TSRC}/Events.h $${TSRC}/WebFactory.h $${TSRC}/TideForecast.h $${TSRC}/Factories.h \
+    CoverModel.h
+
 
 DEFINES += QT_STATICPLUGIN NO_POINTSWINDOW
 
-RESOURCES += harmonics.qrc icons.qrc silica-qml.qrc
+RESOURCES += $${TOP}/harmonics.qrc $${TOP}/icons.qrc
 
 LIBS += -lxml2
 
-INCLUDEPATH += /usr/include/libxml2 /usr/include/eigen3
+INCLUDEPATH += /usr/include/libxml2 $${TSRC}
 
-OTHER_FILES += rpm/jolla-tide.yaml \
-    jolla-tide.desktop
-
-DISTFILES += \
-    jolla-tide.yaml \
-    jolla-tide.desktop
+OTHER_FILES += rpm/jolla-tide.yaml jolla-tide.desktop \
+    qml/AboutPage.qml qml/MainPage.qml qml/AboutStationPage.qml qml/SetMarkPage.qml \
+    qml/ActiveStationsDelegate.qml qml/StationSearchDelegate.qml qml/EventsDelegate.qml \
+    qml/StationSearchPage.qml qml/EventsPage.qml  qml/FactoryDelegate.qml qml/CoverPage.qml \
+    qml/CoverStationsDelegate.qml \
+    qml/tide.qml
 

@@ -76,6 +76,7 @@ QVariant Tide::ActiveStations::data(const QModelIndex& index, int role) const {
     if (role == NextEventIconRole) {
         return QString("tide-%1").arg(ev.shortname());
     }
+
     return QVariant();
 }
 
@@ -171,6 +172,7 @@ bool Tide::ActiveStations::removeRows(int row, int count, const QModelIndex& par
 
 void Tide::ActiveStations::remove(int row) {
     removeRows(row, 1);
+    emit dataChanged(index(0), index(m_Stations.size() - 1));
     Database::OrderActives(Address::fromKeys(m_Stations));
 }
 

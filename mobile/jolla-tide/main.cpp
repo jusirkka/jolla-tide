@@ -12,6 +12,7 @@
 #include "TideForecast.h"
 #include "ActiveStations.h"
 #include "Events.h"
+#include "CoverModel.h"
 
 Q_IMPORT_PLUGIN(TideForecast)
 
@@ -21,6 +22,22 @@ int main(int argc, char *argv[])
 
     // Set up QML engine.
     QScopedPointer<QGuiApplication> app(SailfishApp::application(argc, argv));
+
+
+    QString translations = QString("%1/../share/%2/translations").arg(QCoreApplication::applicationDirPath()).arg(app->applicationName());
+    qDebug() << translations;
+
+    if (QDir(translations).exists()) {
+        QTranslator *translator = new QTranslator();
+
+        // Locale-based translation
+        bool ok = translator->load(QLocale::system(), app->applicationName(), "-", translations);
+        if (!ok) {
+            translator->load(QDir(translations).filePath(app->applicationName() + "-en"));
+        }
+
+        app->installTranslator(translator);
+    }
 
 
     QList<Tide::StationFactory*> factories;
@@ -42,24 +59,27 @@ int main(int argc, char *argv[])
         }
     }
 
-    QQmlApplicationEngine engine;
-    QQmlContext *ctxt = engine.rootContext();
+    QScopedPointer<QQuickView> view(SailfishApp::createView());
+
 
     Tide::Factories factoryModel(factories);
-    ctxt->setContextProperty("factoryModel", &factoryModel);
+    view->rootContext()->setContextProperty("factoryModel", &factoryModel);
 
     Tide::StationProvider stations(&factoryModel);
-    ctxt->setContextProperty("stationModel", &stations);
+    view->rootContext()->setContextProperty("stationModel", &stations);
 
     Tide::ActiveStations activeStations(&stations);
-    ctxt->setContextProperty("activeStationsModel", &activeStations);
+    view->rootContext()->setContextProperty("activeStationsModel", &activeStations);
+
+
+    Tide::CoverModel coverModel(&stations, &activeStations);
+    view->rootContext()->setContextProperty("coverModel", &coverModel);
 
     Tide::Events events(&stations);
-    ctxt->setContextProperty("eventsModel", &events);
+    view->rootContext()->setContextProperty("eventsModel", &events);
 
 
-    QScopedPointer<QQuickView> view(SailfishApp::createView());
-    view->setSource(QUrl(":/silica/tide.qml"));
+    view->setSource(SailfishApp::pathTo("qml/tide.qml"));
     view->show();
 
     return app->exec();

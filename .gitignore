@@ -18,5 +18,6 @@ icons/tide-mark-falling.png
 build-jolla-tide-ext3-Debug
 build-jolla-tide-updater-ext3-Debug
 build-jolla-tide-updater-MerSDK_SailfishOS_armv7hl-Debug
+build-jolla-tide-MerSDK_SailfishOS_armv7hl-Debug
 Eigen
 jolla-tide-updater.spec
