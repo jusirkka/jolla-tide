@@ -1,0 +1,11 @@
+[Unit]
+Description=Jolla Tide Updater
+After=user-session.target
+Requires=dbus.socket
+
+[Service]
+ExecStart=/usr/bin/jolla-tide-updater
+Restart=always
+
+[Install]
+WantedBy=post-user-session.target

@@ -5,6 +5,7 @@
 #include <QQmlContext>
 #include <QtQml>
 #include <QDebug>
+#include <QQuickView>
 
 #include <sailfishapp.h>
 

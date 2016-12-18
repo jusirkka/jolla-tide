@@ -35,6 +35,7 @@ PkgConfigBR:
 # All installed files
 Files:
   - '%{_bindir}/%{name}'
+  - '%{_userunitdir}/%{name}.service'
 
 # For more information about yaml and what's supported in Sailfish OS
 # build system, please see https://wiki.merproject.org/wiki/Spectacle

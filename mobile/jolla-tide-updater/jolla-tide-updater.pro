@@ -34,9 +34,12 @@ LIBS += -lxml2
 
 INCLUDEPATH += /usr/include/libxml2 /usr/include/eigen3 $${TSRC}
 
-OTHER_FILES += rpm/jolla-tide-updater.yaml
+OTHER_FILES += rpm/$${TARGET}.yaml rpm/$${TARGET}.spec $${TARGET}.service
 
 
+sd.files = $${TARGET}.service
+sd.path = /usr/lib/systemd/user
 
+INSTALLS += sd
 
 

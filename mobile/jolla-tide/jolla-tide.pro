@@ -22,11 +22,17 @@ for(t, TRANSLATIONS) {
 qm.files = $$replace(TRANSLATIONS, \.ts, .qm)
 qm.path = /usr/share/$${TARGET}/translations
 qm.commands += [ \"$${OUT_PWD}\" != \"$${_PRO_FILE_PWD_}\" ] && cp $${TRANSLATIONS_IN} $${OUT_PWD}
-qm.commands += ; lupdate $${TSRC} $${_PRO_FILE_PWD_}/qml -ts $${TRANSLATIONS}; lrelease -idbased $${TRANSLATIONS}
+qm.commands += ; lupdate $${TSRC} $${_PRO_FILE_PWD_}/qml -ts $${TRANSLATIONS}
+qm.commands += ; lrelease -idbased $${TRANSLATIONS} -qm $${OUT_PWD}/$$replace(TRANSLATIONS, \.ts, .qm)
 
 INSTALLS += qm
 
 
+ai.files = $${TARGET}.png
+ai.path = /usr/share/icons/hicolor/86x86/apps
+ai.commands += [ \"$${OUT_PWD}\" != \"$${_PRO_FILE_PWD_}\" ] && cp $${_PRO_FILE_PWD_}/$${TARGET}.png $${OUT_PWD}/$${TARGET}.png
+
+INSTALLS += ai
 
 SOURCES += $${TSRC}/Angle.cpp $${TSRC}/Amplitude.cpp $${TSRC}/Coordinates.cpp \
     $${TSRC}/Interval.cpp $${TSRC}/Timestamp.cpp $${TSRC}/Speed.cpp $${TSRC}/Year.cpp \

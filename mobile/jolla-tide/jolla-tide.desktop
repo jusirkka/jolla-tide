@@ -3,3 +3,4 @@ Type=Application
 Name=Tide Calendar
 Icon=jolla-tide
 Exec=jolla-tide
+X-Nemo-Application-Type=silica-qt5
