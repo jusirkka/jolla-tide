@@ -309,25 +309,44 @@ HarmonicsCreator::Coefficients HarmonicsCreator::solve() {
 
     Speeds modes = selectModes();
     Coefficients coeffs;
-    int maxLoops = 5;
+    int maxLoops = 7;
+    double largeAmplitudeCut = 3;
 
 
     coeffs = fitModes(modes);
     qDebug() << "number of modes" << modes.length();
     qDebug() << "error estimate = " << errorEstimate(coeffs);
-    bool zeros = true;
+    bool loopit = true;
     int loopCount = 0;
-    while (zeros && loopCount++ < maxLoops) {
-        zeros = false;
+    while (loopit && loopCount++ < maxLoops) {
+        loopit = false;
         modes.clear();
+        Speeds filtered;
+        Speed prev = Speed::fromRadiansPerSecond(1); // just some value
+        Speed prevLarge = Speed::fromRadiansPerSecond(0);  // just some value
         foreach (Speed q, coeffs.keys()) {
-            if (coeffs[q].mod() < m_AmplitudeCut) {
-                zeros = true;
-                continue;
+            if (coeffs[q].mod() > largeAmplitudeCut) {
+                qDebug() << "Large mode" << m_KnownNames[q] << q.dph() << coeffs[q].mod() << coeffs[q].arg() * 180 / 3.14159;
+                if ((prevLarge != prev) || loopit) {
+                    filtered.append(q);
+                    prevLarge = q;
+                } else {
+                    qDebug() << "Skipping" << m_KnownNames[q];
+                    loopit = true;
+                }
+            } else {
+                filtered.append(q);
             }
-            modes.append(q);
+            prev = q;
         }
-        if (zeros) {
+        foreach (Speed q, filtered) {
+            if (coeffs[q].mod() < m_AmplitudeCut) {
+                loopit = true;
+            } else {
+                modes.append(q);
+            }
+        }
+        if (loopit) {
             coeffs = fitModes(modes);
             qDebug() << "number of modes" << modes.length();
             qDebug() << "error estimate = " << errorEstimate(coeffs);

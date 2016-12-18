@@ -1,14 +1,12 @@
 TEMPLATE = app
 
-QT += sql xml dbus network widgets
+QT += sql xml network widgets
 CONFIG += c++11
 
 TOP = ..
 
 TSRC = $${TOP}/src
 FILES = $${TOP}/files
-
-DBUS_ADAPTORS += $${FILES}/stationupdater.xml
 
 SOURCES += $${TSRC}/Angle.cpp $${TSRC}/Amplitude.cpp $${TSRC}/Coordinates.cpp \
     $${TSRC}/Interval.cpp $${TSRC}/Timestamp.cpp $${TSRC}/Speed.cpp $${TSRC}/Year.cpp \
