@@ -55,9 +55,12 @@ public:
 
     ~ActiveStations();
 
+public slots:
+
+    Q_INVOKABLE void computeNextEvent();
+
 private slots:
 
-    void computeNextEvent();
     void stationChanged(const QString&);
 
 private:

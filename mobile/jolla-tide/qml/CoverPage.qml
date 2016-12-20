@@ -3,6 +3,15 @@ import Sailfish.Silica 1.0
 
 CoverBackground {
 
+    id: cover
+
+    onStatusChanged: {
+        if (cover.status == Cover.Active) {
+            console.log("checking events")
+            activeStationsModel.computeNextEvent()
+        }
+    }
+
     Label {
         id: nameLabel
         width: parent.width
@@ -36,4 +45,6 @@ CoverBackground {
             text: qsTrId("tide-no-active-stations")
         }
     }
+
+
 }
