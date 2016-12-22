@@ -97,6 +97,7 @@ bool operator> (const Timestamp& a, const Timestamp& b);
 bool operator!= (const Timestamp& a, const Timestamp& b);
 
 Timestamp operator+ (const Timestamp& a, const Interval& b);
+Timestamp operator- (const Timestamp& a, const Interval& b);
 
 }
 #endif

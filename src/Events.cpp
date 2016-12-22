@@ -90,9 +90,9 @@ void Tide::Events::computeEvents(int cnt) {
     if (m_Events.isEmpty()) {
         start = Timestamp::now();
     } else if (cnt < 0) {
-        start = m_Events.first().time;
+        start = m_Events.first().time - Interval::fromSeconds(15);
     } else {
-        start = m_Events.last().time;
+        start = m_Events.last().time + Interval::fromSeconds(15);
     }
     const Station& s = m_Parent->station(m_Station);
     TideEvent::Organizer org;

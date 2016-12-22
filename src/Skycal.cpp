@@ -46,7 +46,7 @@
 // The relevant portions of the Skycal 5 comments and license statement
 // are as follows:
 
-/* SKY CALCULATOR PROGRAM 
+/* SKY CALCULATOR PROGRAM
    John Thorstensen, Dartmouth College.
    This program computes many quantities frequently needed by the
    observational astronomer.  It is written as a completely
@@ -71,7 +71,7 @@
    The program is self-contained.  It has been developed primarily on
    UNIX and Linux machines, and should adapt easily to any system with
    a c compiler.
-   
+
     ** BUT CAUTION ... **
    Because many of the routines take a double-precision floating point
    Julian Date as their time argument, one must be sure that the machine
@@ -79,12 +79,12 @@
    On most architectures the double-precision floating point julian date
    has an accuracy of order 0.01 seconds of time, which is just adequate.
 
-LEGALITIES: 
+LEGALITIES:
 
    I make no guarantee as to the accuracy, reliability, or
    appropriateness of this program, though I have found it to be
    reasonably accurate and quite useful to the working astronomer.
-   
+
    The program is COPYRIGHT 2000 BY JOHN THORSTENSEN.
    Permission is hereby granted for non-profit scientific or educational use.
    For-profit use (e. g., by astrologers!) must be through negotiated
@@ -415,17 +415,17 @@ static double circulo (double x) {
 
     n = (int)(x / 360.);
     return(x - 360. * n);
-}	
+}
 
 
 // Added 2003-02-04 from Skycal 5 for moonrise/moonset
 static void geocent (double geolong, double geolat, double height,
                      double *x_geo, double *y_geo, double *z_geo)
 
-/* computes the geocentric coordinates from the geodetic 
-(standard map-type) longitude, latitude, and height. 
+/* computes the geocentric coordinates from the geodetic
+(standard map-type) longitude, latitude, and height.
 These are assumed to be in decimal hours, decimal degrees, and
-meters respectively.  Notation generally follows 1992 Astr Almanac, 
+meters respectively.  Notation generally follows 1992 Astr Almanac,
 p. K11 */
 
 {
@@ -540,11 +540,11 @@ static void accumoon (double jd, double geolat, double lst, double elevsea,
 
 // double jd,geolat,lst,elevsea;  /* jd, dec. degr., dec. hrs., meters */
 
-/* More accurate (but more elaborate and slower) lunar 
+/* More accurate (but more elaborate and slower) lunar
    ephemeris, from Jean Meeus' *Astronomical Formulae For Calculators*,
    pub. Willman-Bell.  Includes all the terms given there. */
 
-{	
+{
     /*	double *eclatit,*eclongit, *pie,*ra,*dec,*dist; geocent quantities,
         formerly handed out but not in this version */
     double pie, dist;  /* horiz parallax */
@@ -946,19 +946,19 @@ void Skycal::AddSunMoonEvents(const Tide::Timestamp& start,
     Tide::TideEvent ev = findNextRiseOrSet(start, loc, solar);
     while (ev.time < end) {
         org.insert(ev.time, ev);
-        ev = findNextRiseOrSet(ev.time, loc, solar);
+        ev = findNextRiseOrSet(ev.time + Tide::Interval::fromSeconds(15), loc, solar);
     }
 
     ev = findNextRiseOrSet(start, loc, lunar);
     while (ev.time < end) {
         org.insert(ev.time, ev);
-        ev = findNextRiseOrSet(ev.time, loc, lunar);
+        ev = findNextRiseOrSet(ev.time + Tide::Interval::fromSeconds(15), loc, lunar);
     }
 
     ev = findNextMoonPhase(start);
     while (ev.time < end) {
         org.insert(ev.time, ev);
-        ev = findNextMoonPhase(ev.time);
+        ev = findNextMoonPhase(ev.time + Tide::Interval::fromSeconds(15));
     }
 }
 

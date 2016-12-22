@@ -8,7 +8,7 @@ CoverBackground {
     onStatusChanged: {
         if (cover.status == Cover.Active) {
             console.log("checking events")
-            activeStationsModel.computeNextEvent()
+            activeStationsModel.computeNextEvent(true)
         }
     }
 

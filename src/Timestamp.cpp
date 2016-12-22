@@ -101,6 +101,10 @@ Timestamp (Tide::operator+) (const Timestamp& a, const Interval& b) {
     return Timestamp::fromPosixTime(a.posix() + b.seconds);
 }
 
+Timestamp (Tide::operator-) (const Timestamp& a, const Interval& b) {
+    return Timestamp::fromPosixTime(a.posix() - b.seconds);
+}
+
 bool (Tide::operator!=) (const Timestamp& a, const Timestamp& b) {
     return a.posix() != b.posix();
 }

@@ -109,12 +109,12 @@ void Tide::ActiveStations::append(const QString& station) {
     m_Parent->stationUpdate();
 }
 
-void Tide::ActiveStations::computeNextEvent() {
+void Tide::ActiveStations::computeNextEvent(bool reset) {
     QHashIterator<QString, Data> ev(m_Events);
     while (ev.hasNext()) {
         ev.next();
         QTimer* r = ev.value().recompute;
-        if (r->isActive() && ev.value().next.type != TideEvent::invalid) {
+        if (r->remainingTime() > 0 && ev.value().next.type != TideEvent::invalid && !reset) {
             continue;
         }
         const Station& s = m_Parent->station(ev.key());

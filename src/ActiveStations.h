@@ -57,7 +57,7 @@ public:
 
 public slots:
 
-    Q_INVOKABLE void computeNextEvent();
+    Q_INVOKABLE void computeNextEvent(bool reset=false);
 
 private slots:
 
