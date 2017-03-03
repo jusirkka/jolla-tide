@@ -1,8 +1,6 @@
-TEMPLATE = app
-
 TARGET = jolla-tide-updater
 
-CONFIG += sailfishapp c++11
+CONFIG += c++11
 
 QT += sql xml dbus network
 
@@ -41,5 +39,3 @@ sd.files = $${TARGET}.service
 sd.path = /usr/lib/systemd/user
 
 INSTALLS += sd
-
-

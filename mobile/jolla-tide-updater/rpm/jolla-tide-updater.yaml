@@ -1,7 +1,7 @@
 Name: jolla-tide-updater
 Summary: Keeps active jolla-tide stations updated.
 # Description: Keeps active jolla-tide stations updated.
-Version: 0.1
+Version: 0.5
 Release: 1
 # The contents of the Group field must be one of the groups listed here:
 # http://gitorious.org/meego-developer-tools/spectacle/blobs/master/data/GROUPS

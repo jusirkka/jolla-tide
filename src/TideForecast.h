@@ -1,4 +1,4 @@
-﻿#ifndef TIDE_FORECAST_H
+#ifndef TIDE_FORECAST_H
 #define TIDE_FORECAST_H
 
 #include <QObject>

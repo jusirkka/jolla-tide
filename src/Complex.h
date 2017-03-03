@@ -29,10 +29,6 @@ private:
 };
 
 
-inline Complex operator- (double a, const Complex& c) {
-    return Complex(a  - c.x, c.y);
-}
-
 inline Complex operator+ (const Complex& c1, const Complex& c2) {
     return Complex(c1.x + c2.x, c1.y + c2.y);
 }
@@ -57,7 +53,7 @@ inline Complex operator/ (const Complex& z1, const Complex& z2) {
     return z1 * z2.conjugate() / z2.mod2();
 }
 
-inline const Complex exp(Complex c) {
+inline const Complex exp(const Complex& c) {
   return ::exp(c.x) * Complex(::cos(c.y), ::sin(c.y));
 }
 
